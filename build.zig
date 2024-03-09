@@ -12,8 +12,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    lib.installHeader("/usr/include/libmongoc-1.0/mongoc.h", "mongoc.h");
-    lib.installHeader("/usr/include/libbson-1.0/bson.h", "bson.h");
     lib.linkSystemLibrary("libmongoc-1.0");
     lib.linkLibC();
 
@@ -21,26 +19,26 @@ pub fn build(b: *std.Build) void {
 
     // bson unit tests
     const bson_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/bson/bson.zig" },
+        .root_source_file = .{ .path = "src/bson_test.zig" },
         .target = target,
         .optimize = optimize,
     });
     bson_tests.linkLibC();
     bson_tests.linkSystemLibrary("libmongoc-1.0");
     const run_bson_tests = b.addRunArtifact(bson_tests);
-    const test_bson_step = b.step("bson-test", "run bson unit tests");
+    const test_bson_step = b.step("test-bson", "run bson unit tests");
     test_bson_step.dependOn(&run_bson_tests.step);
 
     // mongo unit test
     const mongo_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/mongo/mongo.zig" },
+        .root_source_file = .{ .path = "src/mongo_test.zig" },
         .target = target,
         .optimize = optimize,
     });
     mongo_tests.linkLibC();
     mongo_tests.linkSystemLibrary("libmongoc-1.0");
     const run_mongo_tests = b.addRunArtifact(mongo_tests);
-    const test_mongo_step = b.step("mongo-test", "run mongo unit tests");
+    const test_mongo_step = b.step("test-mongo", "run mongo unit tests");
     test_mongo_step.dependOn(&run_mongo_tests.step);
 
     const lib_unit_tests = b.addTest(.{
