@@ -83,7 +83,7 @@ pub const Client = struct {
 
     pub fn commandSimple(self: Self, db: [:0]const u8, command: *bson.Bson, read_prefs: ?*c.mongoc_read_prefs_t, reply: *bson.Bson) !void {
         const err = bson.BsonError.init();
-        const ok = c.mongoc_client_command_simple(self.ptr, db, &command.value, read_prefs, &reply.value, err.ptr());
+        const ok = c.mongoc_client_command_simple(self.ptr, db, &command.bson, read_prefs, &reply.bson, err.ptr());
         errdefer reply.destroy();
 
         if (!ok) {
