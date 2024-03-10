@@ -18,6 +18,8 @@ pub fn build(b: *std.Build) void {
 
     _ = b.addModule("libmongoc.library", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path) } });
     _ = b.addModule("libmongoc.include", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.include").root_source_file.?.path) } });
+    _ = b.addModule("libmongoc.bson", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.bson").root_source_file.?.path) } });
+    _ = b.addModule("libmongoc.mongoc", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.mongoc").root_source_file.?.path) } });
     _ = b.addModule("libmongoc.h", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.h").root_source_file.?.path) } });
     _ = b.addModule("libbson.h", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libbson.h").root_source_file.?.path) } });
     _ = b.addModule("libmongoc.so", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.so").root_source_file.?.path) } });
