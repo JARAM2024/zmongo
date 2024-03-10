@@ -1,9 +1,13 @@
 .{
     .name = "zmongo",
-    .version = "0.0.1",
-
-    .dependencies = .{},
-
+    .version = "0.0.2",
+    .dependencies = .{
+        .libmongoc = .{
+            .path = "./libmongoc",
+            // .url = "https://github.com/sugarme/libmongoc/archive/8d56444328ff1b274e9ed6e5a22b77762301956e.tar.gz",
+            // .hash = "1220054b253256cbb39b81aa963a44abfdae946ff1123622b714ef9e57de28b11473",
+        },
+    },
     .paths = .{
         "",
     },
