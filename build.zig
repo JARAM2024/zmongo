@@ -12,6 +12,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    lib.installHeader("c/include/bson.h", "bson.h");
+    lib.installHeader("c/include/mongoc.h", "mongoc.h");
+    lib.installHeadersDirectory("c/include/bson", "bson");
+    lib.installHeadersDirectory("c/include/mongoc", "mongoc");
+
     lib.addIncludePath(.{ .path = "c/include/" });
     lib.addIncludePath(.{ .path = "c/include/bson" });
     lib.addIncludePath(.{ .path = "c/include/mongoc" });
