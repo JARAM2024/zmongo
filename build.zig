@@ -3,7 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    _ = b.addModule("zmongo", .{ .root_source_file = .{ .path = "root.zig" } });
+    // _ = b.addModule("zmongo", .{ .root_source_file = .{ .path = "root.zig" } });
 
     const lib = b.addStaticLibrary(.{
         .name = "zmongo",
