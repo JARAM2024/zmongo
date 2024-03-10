@@ -154,7 +154,7 @@ pub const Bson = struct {
     }
 
     pub fn hasField(self: *Self, key: [:0]const u8) bool {
-        return c.bson_has_field(self.getConst(), key);
+        return c.bson_has_field(self.ptrConst(), key);
     }
 
     /// The bson_append_array() function shall append array to bson using the specified key.
