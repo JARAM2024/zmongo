@@ -1,33 +1,37 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
-
-    // export `zmongo` module
-    _ = b.addModule("zmongo", .{ .root_source_file = .{ .path = "src/root.zig" } });
+    const zmongo = b.addModule("zmongo", .{
+        .root_source_file = .{ .path = "src/root.zig" },
+    });
 
     const libmongoc = b.dependency("libmongoc", .{});
 
-    const lib = b.addStaticLibrary(.{
-        .name = "zmongo",
-        .root_source_file = .{ .path = "src/root.zig" },
-        .target = target,
-        .optimize = optimize,
+    const libpath = b.addModule("libpath", .{
+        .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path) },
     });
 
-    _ = b.addModule("libmongoc.library", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path) } });
-    _ = b.addModule("libmongoc.include", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.include").root_source_file.?.path) } });
-    _ = b.addModule("libmongoc.bson", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.bson").root_source_file.?.path) } });
-    _ = b.addModule("libmongoc.mongoc", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.mongoc").root_source_file.?.path) } });
-    _ = b.addModule("libmongoc.h", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.h").root_source_file.?.path) } });
-    _ = b.addModule("libbson.h", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libbson.h").root_source_file.?.path) } });
-    _ = b.addModule("libmongoc.so", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.so").root_source_file.?.path) } });
-    _ = b.addModule("libbson.so", .{ .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libbson.so").root_source_file.?.path) } });
+    const mod = b.addModule("zmongo_module", .{
+        .root_source_file = .{ .path = "zmongo.zig" },
+        .imports = &.{ .{
+            .name = "zmongo",
+            .module = zmongo,
+        }, .{
+            .name = "libpath",
+            .module = libpath,
+        } },
+    });
 
-    b.installArtifact(lib);
+    zmongo.addIncludePath(.{ .path = "./libmongoc/include/" });
+    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libbson-1.0.so" });
+    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libmongoc-1.0.so" });
+    zmongo.link_libc = true;
+
+    _ = mod;
 
     // bson unit tests
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
     const bson_tests = b.addTest(.{
         .root_source_file = .{ .path = "src/bson_test.zig" },
         .target = target,
