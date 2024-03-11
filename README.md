@@ -2,7 +2,7 @@
 
 ## What is it
 
-`zmongo` is a wrapper to [official mongo-c-driver](https://github.com/mongodb/mongo-c-driver.git).
+`zmongo` is a wrapper to [official mongo-c-driver](https://github.com/mongodb/mongo-c-driver.git) - client [MongoDB](https://www.mongodb.com/) library.
 
 It is meant to be a temporary solution to use `mongodb` database for ziglang until we have a native ziglang driver for mongodb.
 
@@ -17,7 +17,7 @@ See `example` for detail how to setup.
 
 `example` can be run as following:
 
-- Run mongodb server in docker: `bash ./mongodb-server.sh`.
+- Run mongodb server in docker: `bash ./libmongoc/mongodb-server.sh`.
 
 - Run the example in `example` folder: 
 
