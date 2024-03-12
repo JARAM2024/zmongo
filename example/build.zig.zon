@@ -3,8 +3,8 @@
     .version = "0.0.0",
     .dependencies = .{
         .zmongo = .{
-            .url = "https://github.com/sugarme/zmongo/archive/2fa812f231293dd84c246e440fe53e19823a211e.tar.gz",
-            .hash = "122034f9b1cb9d11106b51d739a2535a6b467a0cfa954a1c2de1a6619b7b41b36804",
+            .url = "https://github.com/sugarme/zmongo/archive/d79d79d01b0e723ca24714723a9182710fe60bfa.tar.gz",
+            .hash = "122059e00a678825a546b382cc2b143f511098825cbed9c9724eb2d29f91425af6b4",
         },
     },
     .paths = .{
