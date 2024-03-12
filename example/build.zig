@@ -19,14 +19,6 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("zmongo", zmongo.module("zmongo"));
 
     exe.addLibraryPath(.{ .cwd_relative = zmongo.builder.pathFromRoot(zmongo.module("libpath").root_source_file.?.path) });
-    exe.linkSystemLibrary("sasl2");
-    exe.linkSystemLibrary("ssl");
-    exe.linkSystemLibrary("crypto");
-    exe.linkSystemLibrary("rt");
-    exe.linkSystemLibrary("pthread");
-    exe.linkSystemLibrary("z");
-    exe.linkSystemLibrary("zstd");
-    exe.linkSystemLibrary("icuuc");
 
     b.installArtifact(exe);
     const run_cmd = b.addRunArtifact(exe);
