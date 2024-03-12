@@ -23,9 +23,12 @@ pub fn build(b: *std.Build) void {
     });
 
     zmongo.addIncludePath(.{ .path = "./libmongoc/include/" });
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libbson-1.0.so" });
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libmongoc-1.0.so" });
+    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libbson-static-1.0.a" });
+    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libmongoc-static-1.0.a" });
+    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libresolv-static.a" });
     zmongo.link_libc = true;
+
+    //-lmongoc-static-1.0 -lbson-static-1.0 -lsasl2 -lssl -lcrypto -lrt -lresolv -pthread -lz -lzstd -licuuc
 
     _ = mod;
 
@@ -42,7 +45,17 @@ pub fn build(b: *std.Build) void {
     bson_tests.linkLibC();
     bson_tests.addLibraryPath(.{ .cwd_relative = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path) });
     bson_tests.addIncludePath(.{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.include").root_source_file.?.path) });
-    bson_tests.linkSystemLibrary("libbson-1.0");
+    bson_tests.linkSystemLibrary("libbson-static-1.0");
+    bson_tests.linkSystemLibrary("resolv-static");
+
+    bson_tests.linkSystemLibrary("sasl2");
+    bson_tests.linkSystemLibrary("ssl");
+    bson_tests.linkSystemLibrary("crypto");
+    bson_tests.linkSystemLibrary("rt");
+    bson_tests.linkSystemLibrary("pthread");
+    bson_tests.linkSystemLibrary("z");
+    bson_tests.linkSystemLibrary("zstd");
+    bson_tests.linkSystemLibrary("icuuc");
 
     const run_bson_tests = b.addRunArtifact(bson_tests);
     run_bson_tests.setEnvironmentVariable("LD_LIBRARY_PATH", libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path));
@@ -61,7 +74,17 @@ pub fn build(b: *std.Build) void {
     mongo_tests.linkLibC();
     mongo_tests.addLibraryPath(.{ .cwd_relative = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path) });
     mongo_tests.addIncludePath(.{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.include").root_source_file.?.path) });
-    mongo_tests.linkSystemLibrary("libmongoc-1.0");
+    mongo_tests.linkSystemLibrary("libmongoc-static-1.0");
+    mongo_tests.linkSystemLibrary("resolv-static");
+
+    mongo_tests.linkSystemLibrary("sasl2");
+    mongo_tests.linkSystemLibrary("ssl");
+    mongo_tests.linkSystemLibrary("crypto");
+    mongo_tests.linkSystemLibrary("rt");
+    mongo_tests.linkSystemLibrary("pthread");
+    mongo_tests.linkSystemLibrary("z");
+    mongo_tests.linkSystemLibrary("zstd");
+    mongo_tests.linkSystemLibrary("icuuc");
 
     const run_mongo_tests = b.addRunArtifact(mongo_tests);
     run_mongo_tests.setEnvironmentVariable("LD_LIBRARY_PATH", libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path));
