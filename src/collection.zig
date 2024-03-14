@@ -15,7 +15,7 @@ const Cursor = mongo.Cursor;
 
 // Ref. https://mongoc.org/libmongoc/current/mongoc_collection_t.html
 pub const Collection = struct {
-    collection: *c.mongoc_collection_t,
+    collection: ?*c.mongoc_collection_t,
 
     /// This function shall insert document into collection.
     /// If no _id element is found in document, then a bson_oid_t will be generated locally and added to the document.

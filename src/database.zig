@@ -1,7 +1,7 @@
 const c = @import("c.zig").lib;
 
 pub const Database = struct {
-    ptr: *c.mongoc_database_t,
+    database: ?*c.mongoc_database_t,
 
     // Ref. https://mongoc.org/libmongoc/current/mongoc_database_t.html
     // mongoc_database_add_user()

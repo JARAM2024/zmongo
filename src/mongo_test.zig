@@ -18,7 +18,14 @@ fn newClient() !mongo.Client {
     const uri_string = "mongodb://mongoadmin:mongopass@127.0.0.1:27017";
     const uri = try mongo.Uri.new(uri_string);
 
-    return try mongo.Client.new(uri);
+    var err = bson.BsonError.init();
+
+    if (mongo.Client.newFromUriWithError(uri, &err)) |client| {
+        return client;
+    } else {
+        std.debug.print("create client failed: {s}\n", .{err.string()});
+        return mongo.Error.ClientError;
+    }
 }
 
 test "init" {
@@ -38,24 +45,36 @@ test "uri parsing" {
 
 test "hello" {
     const client = try newClient();
-    try client.setAppname("zmongo-test");
+    const appname_ok = client.setAppname("zmongo-test");
+    try testing.expect(appname_ok);
+
     var command: bson.Bson = undefined;
+    std.debug.print("command type: {any}\n", .{@TypeOf(command)});
     command.init();
     defer command.destroy();
 
+    var reply = bson.Bson.new();
+    defer reply.destroy();
+    const read_prefs = mongo.ReadPrefs.init();
+    defer read_prefs.destroy();
+    var err = bson.BsonError.init();
+
+    std.debug.print("command type BEFORE: {any}\n", .{@TypeOf(command)});
     try command.appendInt32("ping", 1);
 
-    var reply: bson.Bson = undefined;
-    reply.init();
-    defer reply.destroy();
+    const command_ok = client.commandSimple("fakedb", &command, read_prefs, &reply, &err);
 
-    try client.commandSimple("fakedb", &command, null, &reply);
-    try testing.expect(reply.hasField("ok"));
+    if (!command_ok) {
+        std.debug.print("commandSimple() failed: {s} - server response: {any}\n", .{ err.string(), reply.asCanonicalExtendedJson() });
+    }
+
+    try testing.expect(command_ok);
 }
 
 test "ping" {
     const client = try newClient();
-    try client.ping();
+    const ping_ok = client.ping();
+    try testing.expect(ping_ok);
 }
 
 test "Collection.insert" {
@@ -70,8 +89,7 @@ test "Collection.insert" {
     try doc.appendDateTime("created", created);
     try doc.appendDateTime("udpated", created);
 
-    const col = try client.getCollection("db", "users");
-
+    const col = client.getCollection("db", "users");
     const write_concern = mongo.WriteConcern.new();
     // write_concern.setW(mongo.WriteConcernLevels.MONGOC_WRITE_CONCERN_W_DEFAULT);
     defer write_concern.destroy();
@@ -93,7 +111,7 @@ test "Collection.insert" {
 
 test "Collection.findWithOpts" {
     const client = try newClient();
-    const col = try client.getCollection("db", "users");
+    const col = client.getCollection("db", "users");
 
     var filter = bson.Bson.new();
     defer filter.destroy();
@@ -135,7 +153,7 @@ const Post = struct {
 
 test "Collection.insertMany" {
     const client = try newClient();
-    const col = try client.getCollection("db", "posts");
+    const col = client.getCollection("db", "posts");
 
     const post1 = try Post.init(allocator, "This is post one", "Here is my first post content");
     defer post1.deinit(allocator);
@@ -191,7 +209,7 @@ test "Collection.insertMany" {
 
 test "Collection.drop" {
     const client = try newClient();
-    const col = try client.getCollection("db", "users");
+    const col = client.getCollection("db", "users");
     var err = bson.BsonError.init();
     const ok = col.drop(&err);
     if (!ok) {
