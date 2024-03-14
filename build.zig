@@ -69,6 +69,7 @@ pub fn build(b: *std.Build) void {
 
     const run_bson_tests = b.addRunArtifact(bson_tests);
     run_bson_tests.setEnvironmentVariable("LD_LIBRARY_PATH", libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path));
+    run_bson_tests.has_side_effects = true; // no cache
 
     const test_bson_step = b.step("test-bson", "run bson unit tests");
     test_bson_step.dependOn(&run_bson_tests.step);
@@ -100,6 +101,7 @@ pub fn build(b: *std.Build) void {
 
     const run_mongo_tests = b.addRunArtifact(mongo_tests);
     run_mongo_tests.setEnvironmentVariable("LD_LIBRARY_PATH", libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path));
+    run_mongo_tests.has_side_effects = true; // no cache
 
     const test_mongo_step = b.step("test-mongo", "run mongo unit tests");
     test_mongo_step.dependOn(&run_mongo_tests.step);
@@ -111,6 +113,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
+    run_lib_unit_tests.has_side_effects = true; // disable cache
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);

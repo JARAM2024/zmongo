@@ -11,15 +11,14 @@ pub const Uri = struct {
     const Self = @This();
 
     pub fn new(uri_string: [:0]const u8) !Self {
-        const err = bson.BsonError.init();
-        const ptr = c.mongoc_uri_new_with_error(uri_string, err.ptr());
+        var err: c.bson_error_t = undefined;
+        const ptr = c.mongoc_uri_new_with_error(uri_string, &err);
         if (ptr != null) {
             return Self{
                 .ptr = ptr,
             };
         } else {
-            // error populated in err
-            std.debug.print("URI_ERROR: Parsing URI string {s} failed: {s}\n", .{ uri_string, err.message() });
+            std.debug.print("Uri.new() parsing URI string {s} failed: {s}\n", .{ uri_string, std.mem.sliceTo(&err.message, 0) });
             return Error.UriError;
         }
     }
