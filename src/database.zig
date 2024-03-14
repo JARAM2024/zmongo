@@ -3,8 +3,6 @@ const c = @import("c.zig").lib;
 pub const Database = struct {
     ptr: *c.mongoc_database_t,
 
-    const Self = @This();
-
     // Ref. https://mongoc.org/libmongoc/current/mongoc_database_t.html
     // mongoc_database_add_user()
     // mongoc_database_aggregate()

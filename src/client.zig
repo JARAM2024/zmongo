@@ -14,9 +14,7 @@ const testing = std.testing;
 pub const Client = struct {
     ptr: *c.mongoc_client_t,
 
-    const Self = @This();
-
-    pub fn new(uri: Uri) !Self {
+    pub fn new(uri: Uri) !Client {
         var err: c.bson_error_t = undefined;
         const client = c.mongoc_client_new_from_uri_with_error(uri.ptr, &err);
         if (client) |cli| {
@@ -30,7 +28,7 @@ pub const Client = struct {
         return Error.ClientError;
     }
 
-    pub fn getServerStatus(self: Self) !void {
+    pub fn getServerStatus(self: Client) !void {
         var err: c.bson_error_t = undefined;
         const reply: [*c]c.bson_t = c.bson_new();
         defer c.bson_destroy(reply);
@@ -43,7 +41,7 @@ pub const Client = struct {
         }
     }
 
-    pub fn setAppname(self: Self, appname: [:0]const u8) Error!void {
+    pub fn setAppname(self: Client, appname: [:0]const u8) Error!void {
         if (!c.mongoc_client_set_appname(self.ptr, appname)) {
             return Error.ClientError;
         }
@@ -51,7 +49,7 @@ pub const Client = struct {
         return;
     }
 
-    pub fn getDatabaseNames(self: Self) ![][]u8 {
+    pub fn getDatabaseNames(self: Client) ![][]u8 {
         var err: c.bson_error_t = undefined;
         if (c.mongoc_client_get_database_names(self.ptr, &err)) |names| {
             std.debug.print("Database names OK>>>>{any}\n", .{names});
@@ -62,7 +60,7 @@ pub const Client = struct {
         return Error.ClientError;
     }
 
-    pub fn getCollection(self: Self, db: [:0]const u8, collection: [:0]const u8) !Collection {
+    pub fn getCollection(self: Client, db: [:0]const u8, collection: [:0]const u8) !Collection {
         if (c.mongoc_client_get_collection(self.ptr, db, collection)) |col| {
             return Collection{
                 .collection = col,
@@ -72,7 +70,7 @@ pub const Client = struct {
         return Error.ClientError;
     }
 
-    pub fn getDatabase(self: Self, name: [:0]const u8) !Database {
+    pub fn getDatabase(self: Client, name: [:0]const u8) !Database {
         if (c.mongoc_client_get_database(self.ptr, name)) |db| {
             return Database{
                 .ptr = db,
@@ -82,7 +80,7 @@ pub const Client = struct {
         return Error.ClientError;
     }
 
-    pub fn commandSimple(self: Self, db: [:0]const u8, command: *bson.Bson, read_prefs: ?*c.mongoc_read_prefs_t, reply: *bson.Bson) !void {
+    pub fn commandSimple(self: Client, db: [:0]const u8, command: *bson.Bson, read_prefs: ?*c.mongoc_read_prefs_t, reply: *bson.Bson) !void {
         var err: c.bson_error_t = undefined;
         const ok = c.mongoc_client_command_simple(self.ptr, db, command.bson, read_prefs, reply.bson, &err);
         errdefer reply.destroy();
@@ -97,7 +95,7 @@ pub const Client = struct {
 
     // ping connects to the server and do the hand shake.
     // It throws error if not successful.
-    pub fn ping(self: Self) !void {
+    pub fn ping(self: Client) !void {
         var command: bson.Bson = undefined;
         command.init();
         defer command.destroy();

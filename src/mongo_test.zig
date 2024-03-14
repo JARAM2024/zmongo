@@ -73,7 +73,7 @@ test "Collection.insert" {
     const col = try client.getCollection("db", "users");
 
     const write_concern = mongo.WriteConcern.new();
-    write_concern.setW(mongo.WriteConcernLevels.MONGOC_WRITE_CONCERN_W_DEFAULT);
+    // write_concern.setW(mongo.WriteConcernLevels.MONGOC_WRITE_CONCERN_W_DEFAULT);
     defer write_concern.destroy();
 
     // const opts = bson.Bson.new();
@@ -195,7 +195,7 @@ test "Collection.drop" {
     var err = bson.BsonError.init();
     const ok = col.drop(&err);
     if (!ok) {
-        std.debug.print("collection.drop() failed: {s}\n", .{err.err.*.message});
+        std.debug.print("collection.drop() failed: {s}\n", .{err.string()});
     }
 }
 

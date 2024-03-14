@@ -21,23 +21,21 @@ const bson = @import("bson.zig");
 pub const Cursor = struct {
     cursor: ?*c.mongoc_cursor_t,
 
-    const Self = @This();
-
     /// init initializes Cursor to receive `mongoc_cursor_t`.
     /// It must be freed by calling `destroy` after use.
-    pub fn init(cursor: ?*c.mongoc_cursor_t) Self {
-        return Self{
+    pub fn init(cursor: ?*c.mongoc_cursor_t) Cursor {
+        return Cursor{
             .cursor = cursor,
         };
     }
 
     /// This function free up memory held up by `mongoc_cursor_t`.
     /// mongoc_cursor_destroy()
-    pub fn destroy(self: Self) void {
+    pub fn destroy(self: Cursor) void {
         c.mongoc_cursor_destroy(self.cursor);
     }
 
-    pub fn deinit(self: Self) void {
+    pub fn deinit(self: Cursor) void {
         return self.destroy();
     }
 
@@ -51,7 +49,7 @@ pub const Cursor = struct {
     ///
     /// mongoc_cursor_next()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_cursor_next.html
-    pub fn next(self: Self, doc: [*c][*c]const c.bson_t) bool {
+    pub fn next(self: Cursor, doc: [*c][*c]const c.bson_t) bool {
         // var d = doc.ptrConst();
         return c.mongoc_cursor_next(self.cursor, doc);
     }
@@ -61,7 +59,7 @@ pub const Cursor = struct {
     ///
     /// mongoc_cursor_error()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_cursor_error.html
-    pub fn errorMessage(self: Self, allocator: std.mem.Allocator) ![]const u8 {
+    pub fn errorMessage(self: Cursor, allocator: std.mem.Allocator) ![]const u8 {
         var err: c.bson_error_t = undefined;
         const ok = c.mongoc_cursor_error(self.cursor, &err);
         if (!ok) {
@@ -84,7 +82,7 @@ pub const Cursor = struct {
     ///
     /// mongoc_cursor_error_document()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_cursor_error_document.html
-    pub fn errorDocument(self: Self, err: bson.BsonError, reply: bson.Bson) bool {
+    pub fn errorDocument(self: Cursor, err: bson.BsonError, reply: bson.Bson) bool {
         return c.mongoc_cursor_error_document(self.cursor, err.ptr(), &reply.ptrConst());
     }
 
@@ -92,7 +90,7 @@ pub const Cursor = struct {
     ///
     /// mongoc_cursor_get_host()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_cursor_get_host.html
-    pub fn getHost(self: Self, host: mongo.Host) void {
+    pub fn getHost(self: Cursor, host: mongo.Host) void {
         return c.mongoc_cursor_get_host(self.cursor, host.ptr());
     }
 

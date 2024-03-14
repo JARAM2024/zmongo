@@ -16,9 +16,7 @@ const bson = @import("bson.zig");
 pub const WriteConcern = struct {
     write_concern: ?*c.mongoc_write_concern_t,
 
-    const Self = @This();
-
-    pub fn ptrOrNull(self: Self) ?*c.mongoc_write_concern_t {
+    pub fn ptrOrNull(self: WriteConcern) ?*c.mongoc_write_concern_t {
         return self.write_concern;
     }
 
@@ -27,8 +25,8 @@ pub const WriteConcern = struct {
     ///
     /// mongoc_write_concern_new()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_write_concern_new.html
-    pub fn new() Self {
-        return Self{
+    pub fn new() WriteConcern {
+        return WriteConcern{
             .write_concern = c.mongoc_write_concern_new(),
         };
     }
@@ -38,7 +36,7 @@ pub const WriteConcern = struct {
     ///
     /// mongoc_write_concern_destroy()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_write_concern_destroy.html
-    pub fn destroy(self: Self) void {
+    pub fn destroy(self: WriteConcern) void {
         c.mongoc_write_concern_destroy(self.write_concern);
     }
 
@@ -49,8 +47,8 @@ pub const WriteConcern = struct {
     ///
     /// mongoc_write_concern_set_w()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_write_concern_set_w.html
-    pub fn setW(self: Self, w: i32) void {
-        c.mongoc_write_concern_set_w(self.write_concern, w);
+    pub fn setW(self: WriteConcern, w: mongo.WriteConcernLevels) void {
+        c.mongoc_write_concern_set_w(self.write_concern, @intFromEnum(w));
     }
 
     /// Fetches the w parameter of the write concern.
@@ -60,7 +58,7 @@ pub const WriteConcern = struct {
     ///
     /// mongoc_write_concern_get_w()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_write_concern_get_w.html
-    pub fn getW(self: Self) i32 {
+    pub fn getW(self: WriteConcern) i32 {
         return c.mongoc_write_concern_get_w(self.write_concern);
     }
 

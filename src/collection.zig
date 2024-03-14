@@ -8,8 +8,10 @@ const BsonError = bson.BsonError;
 const UpdateFlags = mongo.UpdateFlags;
 const DeleteFlags = mongo.DeleteFlags;
 const InsertFlags = mongo.InsertFlags;
+const QueryFlags = mongo.QueryFlags;
 const WriteConcern = mongo.WriteConcern;
 const ReadPrefs = mongo.ReadPrefs;
+const Cursor = mongo.Cursor;
 
 // Ref. https://mongoc.org/libmongoc/current/mongoc_collection_t.html
 pub const Collection = struct {
@@ -25,8 +27,8 @@ pub const Collection = struct {
     ///
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_collection_insert.html
     /// mongoc_collection_insert()
-    pub fn insert(self: Collection, document: *const Bson, flags: u32, write_concern: WriteConcern, err: *BsonError) bool {
-        return c.mongoc_collection_insert(self.collection, flags, document.ptrConst(), write_concern.ptrOrNull(), err.ptr());
+    pub fn insert(self: Collection, document: *const Bson, flags: InsertFlags, write_concern: WriteConcern, err: *BsonError) bool {
+        return c.mongoc_collection_insert(self.collection, @intFromEnum(flags), document.ptrConst(), write_concern.ptrOrNull(), err.ptr());
     }
 
     /// drop drops the current collection if it exists.
@@ -109,9 +111,9 @@ pub const Collection = struct {
     ///
     /// mongoc_collection_find_with_opts()
     /// https://mongoc.org/libmongoc/current/mongoc_collection_find_with_opts.html
-    pub fn findWithOpts(self: Collection, filter: *const Bson, opts: *const Bson, read_prefs: ReadPrefs) mongo.Cursor {
+    pub fn findWithOpts(self: Collection, filter: *const Bson, opts: *const Bson, read_prefs: ReadPrefs) Cursor {
         const cursor = c.mongoc_collection_find_with_opts(self.collection, filter.ptrConst(), opts.ptrConst(), read_prefs.ptrOrNull());
-        return mongo.Cursor.init(cursor);
+        return Cursor.init(cursor);
     }
 
     /// This function shall delete documents in the given collection that match selector.
@@ -127,7 +129,7 @@ pub const Collection = struct {
     /// mongoc_collection_delete()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_collection_delete.html
     pub fn delete(self: Collection, flags: DeleteFlags, selector: *const Bson, write_concern: WriteConcern, err: *BsonError) bool {
-        return c.mongoc_collection_delete(self.collection, flags, selector.ptrConst(), write_concern.ptrOrNull(), err.ptr);
+        return c.mongoc_collection_delete(self.collection, @intFromEnum(flags), selector.ptrConst(), write_concern.ptrOrNull(), err.ptr);
     }
 
     /// This function shall update documents in collection that match selector.
@@ -144,7 +146,7 @@ pub const Collection = struct {
     /// mongoc_collection_update()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_collection_update.html
     pub fn update(self: Collection, flags: UpdateFlags, selector: *const Bson, update_doc: *const Bson, write_concern: WriteConcern, err: *BsonError) bool {
-        return c.mongoc_collection_update(self.collection, flags, selector.ptrConst(), update_doc.ptrConst(), write_concern.ptrOrNull(), err.ptr());
+        return c.mongoc_collection_update(self.collection, @intFromEnum(flags), selector.ptrConst(), update_doc.ptrConst(), write_concern.ptrOrNull(), err.ptr());
     }
 
     /// This function updates at most one document in collection that matches selector.
@@ -220,14 +222,98 @@ pub const Collection = struct {
         return c.mongoc_collection_delete_one(self.collection, selector.ptrConst(), opts.ptrConst(), reply.ptr(), err.ptr());
     }
 
+    /// This function returns a newly allocated mongoc_cursor_t that should be freed with mongoc_cursor_destroy() when no longer in use.
+    /// The returned mongoc_cursor_t is never NULL, even on error. The user must call mongoc_cursor_next()
+    /// on the returned mongoc_cursor_t to execute the initial command.
+    ///
+    /// This function is not considered a retryable read operation.
+    ///
+    /// - collection: A mongoc_collection_t.
+    /// - flags: A mongoc_query_flags_t.
+    /// - skip: A uint32_t with the number of documents to skip or zero.
+    /// - limit: A uint32_t with the max number of documents to return or zero.
+    /// - batch_size: A uint32_t with the number of documents in each batch or zero. Default is 100.
+    /// - command: A bson_t containing the command to execute.
+    /// - fields: A bson_t containing the fields to return or NULL. Not all commands support this option.
+    /// - read_prefs: An optional mongoc_read_prefs_t. Otherwise, the command uses mode MONGOC_READ_PRIMARY.
+    ///
+    /// Cursor errors can be checked with mongoc_cursor_error_document(). It always fills out the bson_error_t
+    /// if an error occurred, and optionally includes a server reply document if the error occurred server-side.
+    ///
+    /// mongoc_collection_command()
+    /// Ref. https://mongoc.org/libmongoc/current/mongoc_collection_command.html
+    pub fn command(self: Collection, flags: QueryFlags, skip: u32, limit: u32, batch_size: u32, command_doc: *const Bson, fields: *const Bson, read_prefs: ReadPrefs) Cursor {
+        const cursor = c.mongoc_collection_command(self.collection, @intFromEnum(flags), skip, limit, batch_size, command_doc.ptrConst(), fields.ptrConst(), read_prefs.ptrOrNull());
+
+        return Cursor.init(cursor);
+    }
+
+    /// This is a simplified version of mongoc_collection_command() that returns the first result document in reply.
+    /// The collection’s read preference, read concern, and write concern are not applied to the command.
+    /// The parameter reply is initialized even upon failure to simplify memory management.
+    ///
+    /// This function tries to unwrap an embedded error in the command when possible.
+    /// The unwrapped error will be propagated via the error parameter. Additionally, the result document is set in reply.
+    ///
+    /// - collection: A mongoc_collection_t.
+    /// - command: A bson_t containing the command to execute.
+    /// - read_prefs: An optional mongoc_read_prefs_t. Otherwise, the command uses mode MONGOC_READ_PRIMARY.
+    /// - reply: A maybe-NULL pointer to overwritable storage for a bson_t to contain the results.
+    /// - error: An optional location for a bson_error_t or NULL.
+    ///
+    /// This function is not considered a retryable read operation.
+    ///
+    /// mongoc_collection_command_simple()
+    /// Ref. https://mongoc.org/libmongoc/current/mongoc_collection_command_simple.html
+    pub fn commandSimple(self: Collection, command_doc: *const Bson, read_prefs: ReadPrefs, reply: *Bson, err: *BsonError) Cursor {
+        const cursor = c.mongoc_collection_command_simple(self.collection, command_doc.ptrConst(), read_prefs.ptrOrNull, reply.ptr(), err.ptr());
+        return Cursor.init(cursor);
+    }
+
+    ///
+    /// Execute a command on the server, interpreting opts according to the MongoDB server version.
+    /// To send a raw command to the server without any of this logic, use mongoc_client_command_simple().
+    ///
+    /// Read preferences, read and write concern, and collation can be overridden by various sources.
+    /// The highest-priority sources for these options are listed first:
+    /// Ref. https://mongoc.org/libmongoc/current/mongoc_collection_command_with_opts.html
+    ///
+    /// In a transaction, read concern and write concern are prohibited in opts and the read preference must be primary or NULL.
+    /// See the example for transactions and for the “distinct” command with opts.
+    ///
+    /// - collection: A mongoc_collection_t.
+    /// - command: A bson_t containing the command specification.
+    /// - read_prefs: An optional mongoc_read_prefs_t.
+    /// - opts: A bson_t containing additional options.
+    ///     + reply: A maybe-NULL pointer to overwritable storage for a bson_t to contain the results.
+    ///     + error: An optional location for a bson_error_t or NULL.
+    ///     + opts may be NULL or a BSON document with additional command options:
+    ///     + readConcern: Construct a mongoc_read_concern_t and use mongoc_read_concern_append() to add the read concern to opts.
+    ///     See the example code for mongoc_client_read_command_with_opts(). Read concern requires MongoDB 3.2 or later, otherwise an error is returned.
+    ///     + writeConcern: Construct a mongoc_write_concern_t and use mongoc_write_concern_append() to add the write concern to opts.
+    ///     See the example code for mongoc_client_write_command_with_opts().
+    ///     + sessionId: First, construct a mongoc_client_session_t with mongoc_client_start_session().
+    ///     You can begin a transaction with mongoc_client_session_start_transaction(), optionally with a
+    ///     mongoc_transaction_opt_t that overrides the options inherited from collection, and use mongoc_client_session_append()
+    ///     to add the session to opts. See the example code for mongoc_client_session_t.
+    ///     + collation: Configure textual comparisons. See Setting Collation Order, and the MongoDB Manual entry on Collation.
+    ///     Collation requires MongoDB 3.2 or later, otherwise an error is returned.
+    ///     + serverId: To target a specific server, include an int32 “serverId” field. Obtain the id by calling
+    ///     mongoc_client_select_server(), then mongoc_server_description_id() on its return value.
+    ///
+    /// reply is always initialized, and must be freed with bson_destroy().
+    ///
+    /// mongoc_collection_command_with_opts()
+    /// Ref. https://mongoc.org/libmongoc/current/mongoc_collection_command_with_opts.html
+    pub fn commandWithOpts(self: Collection, command_doc: *const Bson, read_prefs: ReadPrefs, opts: *const Bson, reply: *Bson, err: *BsonError) bool {
+        return c.mongoc_collection_command_with_opts(self.collection, command_doc.ptrConst(), read_prefs.ptrOrNull(), opts.ptrConst(), reply.ptr(), err.ptr());
+    }
+
     // mongoc_collection_update_many()
     // mongoc_collection_delete_many()
     // mongoc_collection_count_documents()
     // mongoc_collection_find_and_modify()
     // mongoc_collection_find_and_modify_with_opts()
-    // mongoc_collection_command()
-    // mongoc_collection_command_simple()
-    // mongoc_collection_command_with_opts()
 
     // mongoc_collection_aggregate()
     // mongoc_collection_copy()

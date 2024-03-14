@@ -35,13 +35,11 @@ pub const Error = error{
 pub const Json = struct {
     value: [*:0]u8, // pointer to C string.
 
-    const Self = @This();
-
-    pub fn free(self: *const Self) void {
+    pub fn free(self: *const Json) void {
         c.bson_free(self.value);
     }
 
-    pub fn string(self: *const Self) []const u8 {
+    pub fn string(self: *const Json) []const u8 {
         return std.mem.sliceTo(self.value, 0);
     }
 };
@@ -357,24 +355,23 @@ pub const Bson = struct {
 pub const BsonError = struct {
     err: [*c]c.bson_error_t,
 
-    const Self = @This();
-
-    pub fn init() Self {
-        return Self{
-            .err = null, // NOTE. if setting to `undefined` then build with --release=safe get `Segmentation fault`!
+    var _err: c.bson_error_t = undefined;
+    pub fn init() BsonError {
+        return BsonError{
+            .err = &_err, // NOTE. if setting to `undefined` then build with --release=safe get `Segmentation fault`!
         };
     }
 
-    pub fn ptr(self: Self) [*c]c.bson_error_t {
+    pub fn ptr(self: BsonError) [*c]c.bson_error_t {
         return self.err;
     }
 
     // Get error message if any. Caller must free return message after use.
-    pub fn message(self: Self, alloc: std.mem.Allocator) ![]const u8 {
+    pub fn message(self: BsonError, alloc: std.mem.Allocator) ![]const u8 {
         return alloc.dupeZ(u8, self.err.message);
     }
 
-    pub fn string(self: Self) []const u8 {
+    pub fn string(self: BsonError) []const u8 {
         return std.mem.sliceTo(&self.err.*.message, 0);
     }
 };

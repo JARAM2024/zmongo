@@ -6,11 +6,9 @@ const bson = @import("bson.zig");
 pub const ReadPrefs = struct {
     read_prefs: ?*c.mongoc_read_prefs_t = null,
 
-    const Self = @This();
-
     /// mongoc_read_prefs_new()
-    pub fn new(read_mode: mongo.ReadMode) Self {
-        return Self{
+    pub fn new(read_mode: mongo.ReadMode) ReadPrefs {
+        return ReadPrefs{
             .read_prefs = c.mongoc_read_prefs_new(read_mode.ptr()),
         };
     }
@@ -23,12 +21,12 @@ pub const ReadPrefs = struct {
 
     /// This function frees up memory held by ReadPrefs.
     /// mongoc_read_prefs_destroy()
-    pub fn destroy(self: Self) void {
+    pub fn destroy(self: ReadPrefs) void {
         c.mongoc_read_prefs_destroy(self.read_prefs);
     }
 
     // This function returns pointer to `mongoc_read_prefs` or null.
-    pub fn ptrOrNull(self: Self) ?*c.mongoc_read_prefs_t {
+    pub fn ptrOrNull(self: ReadPrefs) ?*c.mongoc_read_prefs_t {
         return self.read_prefs;
     }
 
