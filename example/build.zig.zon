@@ -1,10 +1,10 @@
 .{
     .name = "zmongo-example",
-    .version = "0.0.0",
+    .version = "0.0.1",
     .dependencies = .{
         .zmongo = .{
-            .url = "https://github.com/sugarme/zmongo/archive/d79d79d01b0e723ca24714723a9182710fe60bfa.tar.gz",
-            .hash = "122059e00a678825a546b382cc2b143f511098825cbed9c9724eb2d29f91425af6b4",
+            .url = "https://github.com/sugarme/zmongo/archive/23aa38db95bd692d2c5043b5f22553e82948458b.tar.gz",
+            .hash = "12203976a6f3ccd61b894e00e4f7a09b58374fdc91629d6a556acf950b142f04bd2c",
         },
     },
     .paths = .{

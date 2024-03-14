@@ -375,3 +375,62 @@ pub const BsonError = struct {
         return std.mem.sliceTo(&self.err.*.message, 0);
     }
 };
+
+// Bson Oid:
+// =========
+
+// Ref. https://mongoc.org/libbson/current/bson_oid_t.html
+pub const Oid = struct {
+    oid: [*c]c.bson_oid_t = null,
+
+    // This function creates Oid and generates oid.
+    pub fn init() Oid {
+        var oid: c.bson_oid_t = undefined;
+        c.bson_oid_init(@ptrCast(&oid), null);
+        return Oid{
+            .oid = @ptrCast(&oid),
+        };
+    }
+
+    // This function create a new Oid with `undefined` oid.
+    pub fn new() Oid {
+        var oid: c.bson_oid_t = undefined;
+        return Oid{
+            .oid = &oid,
+        };
+    }
+
+    // This function converts oid object to string.
+    pub fn toString(self: Oid, alloc: std.mem.Allocator) ![]const u8 {
+        var buf = try alloc.allocSentinel(u8, 24, 0);
+        c.bson_oid_to_string(self.oid, buf[0..24 :0]);
+        return buf[0..25];
+    }
+
+    // This function initiates oid from input string oid.
+    pub fn initFromString(oid_string: [:0]const u8) Oid {
+        const self = new();
+        c.bson_oid_init_from_string(self.oid, oid_string);
+
+        return self;
+    }
+
+    // TODO.
+    // bson_oid_compare()
+    // bson_oid_compare_unsafe()
+    // bson_oid_copy()
+    // bson_oid_copy_unsafe()
+    // bson_oid_equal()
+    // bson_oid_equal_unsafe()
+    // bson_oid_get_time_t()
+    // bson_oid_get_time_t_unsafe()
+    // bson_oid_hash()
+    // bson_oid_hash_unsafe()
+    // bson_oid_init()
+    // bson_oid_init_from_data()
+    // bson_oid_init_from_string()
+    // bson_oid_init_from_string_unsafe()
+    // bson_oid_init_sequence()
+    // bson_oid_is_valid()
+    // bson_oid_to_string()
+};

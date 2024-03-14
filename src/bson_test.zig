@@ -121,3 +121,22 @@ test "json bson round trip" {
 
     // try testing.expectEqualStrings(json_input, json_output.string());
 }
+
+test "oid round strip" {
+    const oid = bson.Oid.init();
+
+    const oid_string = try oid.toString(testing.allocator);
+
+    defer testing.allocator.free(oid_string);
+
+    std.debug.print("oid string: {s} - size: {d}\n", .{ oid_string, oid_string.len });
+
+    const oid1 = bson.Oid.initFromString(oid_string[0..24 :0]);
+
+    const oid1_string = try oid1.toString(testing.allocator);
+    defer testing.allocator.free(oid1_string);
+
+    std.debug.print("oid1 string: {s} - size: {d}\n", .{ oid1_string, oid1_string.len });
+
+    try testing.expectEqualSlices(u8, oid_string, oid1_string);
+}

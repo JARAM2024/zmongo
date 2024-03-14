@@ -4,8 +4,6 @@ const mongo = zmongo.mongo;
 const bson = zmongo.bson;
 const datetime = zmongo.datetime;
 
-const testing = std.testing;
-
 pub fn main() !void {
     const uri_string = "mongodb://127.0.0.1:27017";
 
@@ -13,9 +11,18 @@ pub fn main() !void {
     defer mongo.cleanup();
 
     const uri = try mongo.Uri.new(uri_string);
-    const client = try mongo.Client.new(uri);
 
-    try client.setAppname("zmongo-test");
+    var err = bson.BsonError.init();
+    var client: mongo.Client = undefined;
+    if (mongo.Client.newFromUriWithError(uri, &err)) |cli| {
+        client = cli;
+    }
+
+    const ok = client.setAppname("zmongo-test");
+    if (!ok) {
+        std.debug.print("setAppname() failed.\n", .{});
+        return;
+    }
     var command: bson.Bson = undefined;
     command.init();
     defer command.destroy();
@@ -25,9 +32,14 @@ pub fn main() !void {
     var reply: bson.Bson = undefined;
     reply.init();
     defer reply.destroy();
+    const read_prefs = mongo.ReadPrefs.init();
+    defer read_prefs.destroy();
 
-    try client.commandSimple("fakedb", &command, null, &reply);
-    try testing.expect(reply.hasField("ok"));
+    const command_ok = client.commandSimple("fakedb", &command, read_prefs, &reply, &err);
+    if (!command_ok) {
+        std.debug.print("commandSimple() failed: {s}\n", .{err.string()});
+        return;
+    }
 
     var document = bson.Bson.new();
     // RFC3339 format: https://www.rfc-editor.org/rfc/rfc3339

@@ -4,4 +4,8 @@ del/
 
 *.swp
 *.bak
+*.o
+
+example/zig-cache/
+example/zig-out/
 
