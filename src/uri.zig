@@ -40,9 +40,9 @@ pub const Uri = struct {
     ///
     /// mongoc_uri_new_with_error()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_uri_new_with_error.html
-    pub fn new(uri_string: [:0]const u8) !Uri {
+    pub fn new(uri_string: []const u8) !Uri {
         var err: c.bson_error_t = undefined;
-        const ptr = c.mongoc_uri_new_with_error(uri_string, &err);
+        const ptr = c.mongoc_uri_new_with_error(@ptrCast(uri_string), &err);
         if (ptr != null) {
             return Uri{
                 .ptr = ptr,

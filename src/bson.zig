@@ -140,10 +140,10 @@ pub const Bson = struct {
     /// A newly allocated bson_t if successful, otherwise NULL and error is set.
     ///
     /// bson_new_from_json()
-    pub fn newFromJson(data: [:0]const u8) !Bson {
+    pub fn newFromJson(data: []const u8) !Bson {
         var err: c.bson_error_t = undefined;
 
-        const bs = c.bson_new_from_json(data, -1, &err);
+        const bs = c.bson_new_from_json(@ptrCast(data), -1, &err);
         if (bs != null) {
             return Bson{
                 .bson = bs,
@@ -192,8 +192,8 @@ pub const Bson = struct {
     ///
     /// bson_append_int32()
     /// Ref. https://mongoc.org/libbson/current/bson_append_int32.html
-    pub fn appendInt32(self: *Bson, key: [:0]const u8, value: i32) !void {
-        if (!c.bson_append_int32(self.ptr(), key, -1, value))
+    pub fn appendInt32(self: *Bson, key: []const u8, value: i32) !void {
+        if (!c.bson_append_int32(self.ptr(), @ptrCast(key), -1, value))
             return Error.AppendError;
     }
 
@@ -208,8 +208,8 @@ pub const Bson = struct {
     ///
     /// bson_append_utf8()
     /// Ref. https://mongoc.org/libbson/current/bson_append_utf8.html
-    pub fn appendUtf8(self: *Bson, key: [:0]const u8, value: [:0]const u8) !void {
-        const ok = c.bson_append_utf8(self.ptr(), key, -1, value, -1);
+    pub fn appendUtf8(self: *Bson, key: []const u8, value: []const u8) !void {
+        const ok = c.bson_append_utf8(self.ptr(), @ptrCast(key), -1, @ptrCast(value), -1);
         if (!ok) {
             return Error.AppendError;
         }
@@ -244,8 +244,8 @@ pub const Bson = struct {
     ///
     /// bson_has_field()
     /// Ref. https://mongoc.org/libbson/current/bson_has_field.html
-    pub fn hasField(self: *Bson, key: [:0]const u8) bool {
-        return c.bson_has_field(self.ptrConst(), key);
+    pub fn hasField(self: *Bson, key: []const u8) bool {
+        return c.bson_has_field(self.ptrConst(), @ptrCast(key));
     }
 
     /// The bson_append_array() function shall append array to bson using the specified key.
@@ -253,8 +253,8 @@ pub const Bson = struct {
     /// to ensure that the keys of array are properly formatted with string keys such as “0”, “1”, “2” and so forth.
     ///
     /// bson_append_array()
-    pub fn appenArray(self: *Bson, key: [:0]const u8, array: *const Bson) !void {
-        const ok = c.bson_append_array(self.ptr(), key, -1, array.ptrConst());
+    pub fn appenArray(self: *Bson, key: []const u8, array: *const Bson) !void {
+        const ok = c.bson_append_array(self.ptr(), @ptrCast(key), -1, array.ptrConst());
         if (!ok) {
             return Error.BsonError;
         }
@@ -270,8 +270,8 @@ pub const Bson = struct {
     /// For generating array element keys, see bson_uint32_to_string().
     ///
     /// bson_append_array_begin()
-    pub fn appendArrayBegin(self: *Bson, key: [:0]const u8, child: *Bson) !void {
-        const ok = c.bson_append_array_begin(self.ptr(), key, -1, child.ptr());
+    pub fn appendArrayBegin(self: *Bson, key: []const u8, child: *Bson) !void {
+        const ok = c.bson_append_array_begin(self.ptr(), @ptrCast(key), -1, child.ptr());
         if (!ok) {
             return Error.BsonError;
         }
@@ -293,8 +293,8 @@ pub const Bson = struct {
     /// https://mongoc.org/libbson/current/bson_append_binary.html
     ///
     /// bson_append_binary()
-    pub fn appendBinary(self: *Bson, key: [:0]const u8, binary: [:0]u8) !void {
-        const ok = c.bson_append_array_begin(self.ptr(), key, -1, binary, -1);
+    pub fn appendBinary(self: *Bson, key: []const u8, binary: []u8) !void {
+        const ok = c.bson_append_array_begin(self.ptr(), @ptrCast(key), -1, @ptrCast(binary), -1);
         if (!ok) {
             return Error.BsonError;
         }
@@ -307,8 +307,8 @@ pub const Bson = struct {
     /// Value is assumed to be in UTC format of milliseconds since the UNIX epoch. value MAY be negative.
     ///
     /// bson_append_date_time()
-    pub fn appendDateTime(self: *Bson, key: [:0]const u8, value: i64) !void {
-        const ok = c.bson_append_date_time(self.ptr(), key, -1, value);
+    pub fn appendDateTime(self: *Bson, key: []const u8, value: i64) !void {
+        const ok = c.bson_append_date_time(self.ptr(), @ptrCast(key), -1, value);
         if (!ok) {
             return Error.AppendError;
         }
@@ -321,8 +321,8 @@ pub const Bson = struct {
     /// The type of the field will be a document.
     ///
     /// bson_append_document()
-    pub fn appendDocument(self: *Bson, key: [:0]const u8, child: *Bson) !void {
-        const ok = c.bson_append_document(self.ptr(), key, -1, child.ptrConst());
+    pub fn appendDocument(self: *Bson, key: []const u8, child: *Bson) !void {
+        const ok = c.bson_append_document(self.ptr(), @ptrCast(key), -1, child.ptrConst());
         if (!ok) {
             return Error.AppendError;
         }
@@ -337,8 +337,8 @@ pub const Bson = struct {
     /// child MUST be an uninitialized bson_t to avoid leaking memory.
     ///
     /// bson_append_document_begin()
-    pub fn appendDocumentBegin(self: *Bson, key: [:0]const u8, child: *Bson) !void {
-        const ok = c.bson_append_document_begin(self.ptr(), key, -1, child.ptr());
+    pub fn appendDocumentBegin(self: *Bson, key: []const u8, child: *Bson) !void {
+        const ok = c.bson_append_document_begin(self.ptr(), @ptrCast(key), -1, child.ptr());
         if (!ok) {
             return Error.AppendError;
         }
@@ -393,8 +393,8 @@ pub const Bson = struct {
     ///
     /// bson_append_oid()
     /// Ref. https://mongoc.org/libbson/current/bson_append_oid.html
-    pub fn appendOid(self: *Bson, key: [*c]const u8, oid: Oid) !void {
-        const ok = c.bson_append_oid(self.bson, key, -1, oid.oid);
+    pub fn appendOid(self: *Bson, key: []const u8, oid: Oid) !void {
+        const ok = c.bson_append_oid(self.bson, @ptrCast(key), -1, oid.oid);
         if (!ok) {
             return Error.AppendError;
         }
@@ -412,8 +412,8 @@ pub const Bson = struct {
     ///
     /// bson_append_double()
     /// Ref. https://mongoc.org/libbson/current/bson_append_double.html
-    pub fn appendDouble(self: *Bson, key: [*c]const u8, value: f64) !void {
-        const ok = c.bson_append_double(self.bson, key, -1, value);
+    pub fn appendDouble(self: *Bson, key: []const u8, value: f64) !void {
+        const ok = c.bson_append_double(self.bson, @ptrCast(key), -1, value);
         if (!ok) {
             return Error.AppendError;
         }
@@ -431,8 +431,8 @@ pub const Bson = struct {
     ///
     /// bson_append_int64()
     /// Ref. https://mongoc.org/libbson/current/bson_append_int64.html
-    pub fn appendInt64(self: *Bson, key: [*c]const u8, value: i64) !void {
-        const ok = c.bson_append_int64(self.bson, key, -1, value);
+    pub fn appendInt64(self: *Bson, key: []const u8, value: i64) !void {
+        const ok = c.bson_append_int64(self.bson, @ptrCast(key), -1, value);
         if (!ok) {
             return Error.AppendError;
         }
@@ -450,8 +450,8 @@ pub const Bson = struct {
     ///
     /// bson_append_bool()
     /// Ref. https://mongoc.org/libbson/current/bson_append_bool.html
-    pub fn appendBool(self: *Bson, key: [*c]const 8, value: bool) !void {
-        const ok = c.bson_append_bool(self.bson, key, -1, value);
+    pub fn appendBool(self: *Bson, key: []const 8, value: bool) !void {
+        const ok = c.bson_append_bool(self.bson, @ptrCast(key), -1, value);
         if (!ok) {
             return Error.AppendError;
         }
@@ -459,8 +459,8 @@ pub const Bson = struct {
     }
 
     /// bson_append_now_utc()
-    pub fn appendNowUtc(self: *Bson, key: [*c]const u8) !void {
-        const ok = c.bson_append_now_utc(self.bson, key, -1);
+    pub fn appendNowUtc(self: *Bson, key: []const u8) !void {
+        const ok = c.bson_append_now_utc(self.bson, @ptrCast(key), -1);
         if (!ok) {
             return Error.AppendError;
         }
@@ -478,8 +478,8 @@ pub const Bson = struct {
     /// - increment: A u32.
     ///
     /// bson_append_timestamp()
-    pub fn appendTimestamp(self: *Bson, key: [*c]const u8, timestamp: u32, increment: u32) !void {
-        const ok = c.bson_append_timestamp(self.bson, key, -1, timestamp, increment);
+    pub fn appendTimestamp(self: *Bson, key: []const u8, timestamp: u32, increment: u32) !void {
+        const ok = c.bson_append_timestamp(self.bson, @ptrCast(key), -1, timestamp, increment);
         if (!ok) {
             return Error.AppendError;
         }
@@ -489,8 +489,8 @@ pub const Bson = struct {
     /// The appendTimeT() function is a helper that takes a time_t instead of milliseconds since the UNIX epoch.
     ///
     /// bson_append_time_t()
-    pub fn appendTimeT(self: *Bson, key: [*c]u8, value: Time) !void {
-        const ok = c.bson_append_time_t(self.bson, key, -1, value);
+    pub fn appendTimeT(self: *Bson, key: []const u8, value: Time) !void {
+        const ok = c.bson_append_time_t(self.bson, @ptrCast(key), -1, value);
         if (!ok) {
             return Error.AppendError;
         }
@@ -500,8 +500,8 @@ pub const Bson = struct {
     /// The function shall append a new element to bson of type BSON_TYPE_NULL.
     ///
     /// bson_append_null()
-    pub fn appendNull(self: *Bson, key: [*c]u8) !void {
-        const ok = c.bson_append_null(self.bson, key, -1);
+    pub fn appendNull(self: *Bson, key: []const u8) !void {
+        const ok = c.bson_append_null(self.bson, @ptrCast(key), -1);
         if (!ok) {
             return Error.AppendError;
         }
@@ -511,8 +511,8 @@ pub const Bson = struct {
     /// The function is a helper that takes a struct timeval instead of milliseconds since the UNIX epoch.
     ///
     /// bson_append_timeval()
-    pub fn appendTimeval(self: *Bson, key: [*c]u8, value: Timeval) !void {
-        const ok = c.bson_append_timeval(self.bson, key, -1, value);
+    pub fn appendTimeval(self: *Bson, key: []const u8, value: Timeval) !void {
+        const ok = c.bson_append_timeval(self.bson, @ptrCast(key), -1, value);
         if (!ok) {
             return Error.AppendError;
         }
@@ -525,8 +525,8 @@ pub const Bson = struct {
     ///
     /// bson_append_value()
     /// Ref. https://mongoc.org/libbson/current/bson_append_value.html
-    pub fn appendValue(self: *Bson, key: [*c]const u8, value: Value) !void {
-        const ok = c.bson_append_value(self.bson, key, -1, value.bson_value);
+    pub fn appendValue(self: *Bson, key: []const u8, value: Value) !void {
+        const ok = c.bson_append_value(self.bson, @ptrCast(key), -1, value.bson_value);
         if (!ok) {
             return Error.AppendError;
         }
@@ -570,9 +570,9 @@ pub const Bson = struct {
     ///
     /// bson_init_from_json()
     /// Ref. https://mongoc.org/libbson/current/bson_init_from_json.html
-    pub fn initFromJson(self: *Bson, data: [*c]const u8) !void {
+    pub fn initFromJson(self: *Bson, data: []const u8) !void {
         var err = BsonError.init();
-        const ok = c.bson_init_from_json(self.bson, data, -1, err.ptr());
+        const ok = c.bson_init_from_json(self.bson, @ptrCast(data), -1, err.ptr());
         if (!ok) {
             std.debug.print("initFromJson failed(): {s}\n", .{err.string()});
             return Error.BsonError;
@@ -587,8 +587,9 @@ pub const Bson = struct {
     /// Returns true if bson is valid; otherwise false and offset is set to the byte offset where the error was detected.
     ///
     /// bson_validate()
-    pub fn validate(self: *Bson, flags: ValidateFlags, offset: [*c]usize) bool {
-        return c.bson_validate(self.bson, @intFromEnum(flags), offset);
+    // pub fn validate(self: *Bson, flags: ValidateFlags, offset: [*c]usize) bool {
+    pub fn validate(self: *Bson, flags: ValidateFlags) bool {
+        return c.bson_validate(self.bson, @intFromEnum(flags), null);
     }
 
     /// Validates a BSON document by walking through the document and inspecting the keys and values for valid content.
@@ -619,8 +620,9 @@ pub const Bson = struct {
     ///
     /// bson_as_json()
     /// Ref. https://mongoc.org/libbson/current/bson_as_json.html
-    pub fn asJson(self: *Bson) [*c]u8 {
-        return c.bson_as_json(self.bson, null);
+    pub fn asJson(self: *Bson) []const u8 {
+        const out = c.bson_as_json(self.bson, null);
+        return @ptrCast(out);
     }
 
     /// The bson_as_json_with_opts() encodes bson as a UTF-8 string in the MongoDB Extended JSON format.
@@ -633,8 +635,9 @@ pub const Bson = struct {
     ///
     /// bson_as_json_with_opts()
     /// Ref. https://mongoc.org/libbson/current/bson_as_json_with_opts.html
-    pub fn asJsonWithOpts(self: *Bson, opts: JsonOpts) [*c]u8 {
-        return c.bson_as_json_with_opts(self.bson, null, opts.json_opts);
+    pub fn asJsonWithOpts(self: *Bson, opts: JsonOpts) []const u8 {
+        const out = c.bson_as_json_with_opts(self.bson, null, opts.json_opts);
+        return @ptrCast(out);
     }
 
     // TODO.
@@ -733,9 +736,9 @@ pub const Oid = struct {
     }
 
     // This function initiates oid from input string oid.
-    pub fn initFromString(oid_string: [:0]const u8) Oid {
+    pub fn initFromString(oid_string: []const u8) Oid {
         const self = new();
-        c.bson_oid_init_from_string(self.oid, oid_string);
+        c.bson_oid_init_from_string(self.oid, @ptrCast(oid_string));
 
         return self;
     }

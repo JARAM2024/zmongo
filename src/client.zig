@@ -101,8 +101,8 @@ pub const Client = struct {
     ///
     /// mongoc_client_set_appname()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_client_set_appname.html
-    pub fn setAppname(self: Client, appname: [:0]const u8) !void {
-        const ok = c.mongoc_client_set_appname(self.client, appname);
+    pub fn setAppname(self: Client, appname: []const u8) !void {
+        const ok = c.mongoc_client_set_appname(self.client, @ptrCast(appname));
         if (!ok) {
             return Error.ClientError;
         }
@@ -123,8 +123,8 @@ pub const Client = struct {
     ///
     /// mongoc_client_get_collection()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_client_get_collection.html
-    pub fn getCollection(self: Client, db: [:0]const u8, collection: [:0]const u8) Collection {
-        const col = c.mongoc_client_get_collection(self.client, db, collection);
+    pub fn getCollection(self: Client, db: []const u8, collection: []const u8) Collection {
+        const col = c.mongoc_client_get_collection(self.client, @ptrCast(db), @ptrCast(collection));
 
         return Collection{
             .collection = col,
@@ -142,8 +142,8 @@ pub const Client = struct {
     ///
     /// mongoc_client_get_database()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_client_get_database.html
-    pub fn getDatabase(self: Client, name: [:0]const u8) Database {
-        const db = c.mongoc_client_get_database(self.client, name);
+    pub fn getDatabase(self: Client, name: []const u8) Database {
+        const db = c.mongoc_client_get_database(self.client, @ptrCast(name));
         return Database{
             .database = db,
         };
@@ -187,8 +187,8 @@ pub const Client = struct {
     ///
     /// mongoc_client_command_simple()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_client_command_simple.html
-    pub fn commandSimple(self: Client, db_name: [:0]const u8, command: *const Bson, read_prefs: ReadPrefs, reply: *Bson, err: *BsonError) bool {
-        return c.mongoc_client_command_simple(self.client, db_name, command.ptrConst(), read_prefs.ptrOrNull(), reply.ptr(), err.ptr());
+    pub fn commandSimple(self: Client, db_name: []const u8, command: *const Bson, read_prefs: ReadPrefs, reply: *Bson, err: *BsonError) bool {
+        return c.mongoc_client_command_simple(self.client, @ptrCast(db_name), command.ptrConst(), read_prefs.ptrOrNull(), reply.ptr(), err.ptr());
     }
 
     // ping connects to the server and do the hand shake.
