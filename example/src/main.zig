@@ -18,19 +18,13 @@ pub fn main() !void {
         client = cli;
     }
 
-    const ok = client.setAppname("zmongo-test");
-    if (!ok) {
-        std.debug.print("setAppname() failed.\n", .{});
-        return;
-    }
-    var command: bson.Bson = undefined;
-    command.init();
-    defer command.destroy();
+    try client.setAppname("zmongo-test");
 
+    var command = bson.Bson.new();
+    defer command.destroy();
     try command.appendInt32("ping", 1);
 
-    var reply: bson.Bson = undefined;
-    reply.init();
+    var reply = bson.Bson.new();
     defer reply.destroy();
     const read_prefs = mongo.ReadPrefs.init();
     defer read_prefs.destroy();
@@ -60,9 +54,8 @@ pub fn main() !void {
     try document.appendDocumentEnd(&child);
 
     // append child array
-    var arr: bson.Bson = undefined;
-    arr.init();
-    defer arr.deinit();
+    var arr = bson.Bson.new();
+    defer arr.destroy();
     try document.appendArrayBegin("degrees", &arr);
     try arr.appendUtf8("degree", "BA");
     try arr.appendUtf8("school", "Vassar");
