@@ -101,8 +101,13 @@ pub const Client = struct {
     ///
     /// mongoc_client_set_appname()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_client_set_appname.html
-    pub fn setAppname(self: Client, appname: [:0]const u8) bool {
-        return c.mongoc_client_set_appname(self.client, appname);
+    pub fn setAppname(self: Client, appname: [:0]const u8) !void {
+        const ok = c.mongoc_client_set_appname(self.client, appname);
+        if (!ok) {
+            return Error.ClientError;
+        }
+
+        return;
     }
 
     /// Get a newly allocated mongoc_collection_t for the collection named collection in the database named db.

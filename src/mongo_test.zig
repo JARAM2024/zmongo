@@ -45,8 +45,7 @@ test "uri parsing" {
 
 test "hello" {
     const client = try newClient();
-    const appname_ok = client.setAppname("zmongo-test");
-    try testing.expect(appname_ok);
+    try client.setAppname("zmongo-test");
 
     var command: bson.Bson = undefined;
     std.debug.print("command type: {any}\n", .{@TypeOf(command)});

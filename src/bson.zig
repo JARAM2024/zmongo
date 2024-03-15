@@ -26,6 +26,32 @@ pub const Type = struct {
     pub const MINKEY: c_uint = c.BSON_TYPE_MINKEY;
 };
 
+/// Validates a BSON document by walking through the document and inspecting the keys and values for valid content.
+/// You can modify how the validation occurs through the use of the flags parameter. A description of their effect is below.
+/// BSON_VALIDATE_NONE Basic validation of BSON length and structure.
+/// BSON_VALIDATE_UTF8 All keys and string values are checked for invalid UTF-8.
+/// BSON_VALIDATE_UTF8_ALLOW_NULL String values are allowed to have embedded NULL bytes.
+/// BSON_VALIDATE_DOLLAR_KEYS Prohibit keys that start with $ outside of a “DBRef” subdocument.
+/// BSON_VALIDATE_DOT_KEYS Prohibit keys that contain . anywhere in the string.
+/// BSON_VALIDATE_EMPTY_KEYS Prohibit zero-length keys.
+/// Ref. https://mongoc.org/libbson/current/bson_validate_with_error.html
+pub const ValidateFlags = enum(c_int) {
+    BSON_VALIDATE_NONE = 0,
+    BSON_VALIDATE_UTF8 = (1 << 0),
+    BSON_VALIDATE_DOLLAR_KEYS = (1 << 1),
+    BSON_VALIDATE_DOT_KEYS = (1 << 2),
+    BSON_VALIDATE_UTF8_ALLOW_NULL = (1 << 3),
+    BSON_VALIDATE_EMPTY_KEYS = (1 << 4),
+};
+
+pub const Time = struct {
+    time: [*c]c.time_t,
+};
+
+pub const Timeval = struct {
+    timeval: [*c]c.timeval,
+};
+
 pub const Error = error{
     AppendError,
     BsonError,
@@ -42,6 +68,39 @@ pub const Json = struct {
     pub fn string(self: *const Json) []const u8 {
         return std.mem.sliceTo(self.value, 0);
     }
+};
+
+pub const JsonMode = enum(c_uint) {
+    BSON_JSON_MODE_LEGACY = 0,
+    BSON_JSON_MODE_CANONICAL = 1,
+    BSON_JSON_MODE_RELAXED = 2,
+};
+
+/// structure contains options for encoding BSON into MongoDB Extended JSON.
+/// The mode member is a bson_json_mode_t defining the encoding mode.
+/// The max_len member holds a maximum length for the resulting JSON string.
+/// Encoding will stop once the serialised string has reached this length.
+/// To encode the full BSON document, BSON_MAX_LEN_UNLIMITED can be used.
+///
+/// Ref. https://mongoc.org/libbson/current/bson_json_opts_t.html
+pub const JsonOpts = struct {
+    json_opts: ?*c.bson_json_opts_t,
+
+    pub fn new(mode: JsonMode, max_len: i32) JsonOpts {
+        const opts = c.bson_json_opts_new(mode, max_len);
+        return JsonOpts{
+            .json_opts = opts,
+        };
+    }
+
+    pub fn destroy(self: JsonOpts) void {
+        c.bson_json_opts_destroy(self.json_opts);
+    }
+
+    // TODO.
+    // bson_json_opts_new()
+    // bson_json_opts_destroy()
+    // bson_json_opts_set_outermost_array()
 };
 
 /// Bson is wrapper of c pointer to `bson_t` structure.
@@ -122,15 +181,33 @@ pub const Bson = struct {
         c.bson_destroy(self.bson);
     }
 
+    /// The appenInt32() function shall append a new element to a bson document of type i32.
+    ///
+    /// - bson: A Bson.
+    /// - key: An ASCII C string containing the name of the field.
+    /// - value: A i32 value to append.
+    ///
+    /// Returns true if the operation was applied successfully.
+    /// The function will fail if appending value grows bson larger than INT32_MAX.
+    ///
     /// bson_append_int32()
+    /// Ref. https://mongoc.org/libbson/current/bson_append_int32.html
     pub fn appendInt32(self: *Bson, key: [:0]const u8, value: i32) !void {
         if (!c.bson_append_int32(self.ptr(), key, -1, value))
             return Error.AppendError;
     }
 
-    /// The appendUtf8 function...
+    /// The appenUtf8() function shall append a new element to a bson document of type UTF-8 string.
+    ///
+    /// - bson: A Bson.
+    /// - key: An ASCII C string containing the name of the field.
+    /// - value: A []const u8 value to append.
+    ///
+    /// Returns true if the operation was applied successfully.
+    /// The function will fail if appending value grows bson larger than INT32_MAX.
     ///
     /// bson_append_utf8()
+    /// Ref. https://mongoc.org/libbson/current/bson_append_utf8.html
     pub fn appendUtf8(self: *Bson, key: [:0]const u8, value: [:0]const u8) !void {
         const ok = c.bson_append_utf8(self.ptr(), key, -1, value, -1);
         if (!ok) {
@@ -157,8 +234,16 @@ pub const Bson = struct {
         }
     }
 
-    /// The hasField() function...
+    /// Checks to see if key contains an element named key.
+    /// This also accepts “dotkey” notation such as “a.b.c.d”.
+    ///
+    /// - bson: A Bson.
+    /// - key: A string containing the name of the field to check for.
+    ///
+    /// Returns true if key was found within bson; otherwise false.
+    ///
     /// bson_has_field()
+    /// Ref. https://mongoc.org/libbson/current/bson_has_field.html
     pub fn hasField(self: *Bson, key: [:0]const u8) bool {
         return c.bson_has_field(self.ptrConst(), key);
     }
@@ -295,33 +380,280 @@ pub const Bson = struct {
         return Error.BsonError;
     }
 
-    // bson_append_bool()
+    /// The appendOid() function shall append a new element to bson of type BSON_TYPE_OID.
+    /// oid MUST be a pointer to a bson_oid_t.
+    ///
+    /// - bson: A bson_t.
+    /// - key: An ASCII C string containing the name of the field.
+    /// - key_length: The length of key in bytes, or -1 to determine the length with strlen().
+    /// - oid: A bson_oid_t.
+    ///
+    /// Returns true if the operation was applied successfully. The function will fail if
+    /// appending oid grows bson larger than INT32_MAX.
+    ///
+    /// bson_append_oid()
+    /// Ref. https://mongoc.org/libbson/current/bson_append_oid.html
+    pub fn appendOid(self: *Bson, key: [*c]const u8, oid: Oid) !void {
+        const ok = c.bson_append_oid(self.bson, key, -1, oid.oid);
+        if (!ok) {
+            return Error.AppendError;
+        }
+        return;
+    }
+
+    /// The appendDouble() function shall append a new element to a bson document of type double.
+    ///
+    /// - bson: A Bson.
+    /// - key: An ASCII C string containing the name of the field.
+    /// - value: A f64 value to append.
+    ///
+    /// Returns true if the operation was applied successfully.
+    /// The function will fail if appending value grows bson larger than INT32_MAX.
+    ///
+    /// bson_append_double()
+    /// Ref. https://mongoc.org/libbson/current/bson_append_double.html
+    pub fn appendDouble(self: *Bson, key: [*c]const u8, value: f64) !void {
+        const ok = c.bson_append_double(self.bson, key, -1, value);
+        if (!ok) {
+            return Error.AppendError;
+        }
+        return;
+    }
+
+    /// The appenInt64() function shall append a new element to a bson document of type i64.
+    ///
+    /// - bson: A Bson.
+    /// - key: An ASCII C string containing the name of the field.
+    /// - value: A i64 value to append.
+    ///
+    /// Returns true if the operation was applied successfully.
+    /// The function will fail if appending value grows bson larger than INT32_MAX.
+    ///
+    /// bson_append_int64()
+    /// Ref. https://mongoc.org/libbson/current/bson_append_int64.html
+    pub fn appendInt64(self: *Bson, key: [*c]const u8, value: i64) !void {
+        const ok = c.bson_append_int64(self.bson, key, -1, value);
+        if (!ok) {
+            return Error.AppendError;
+        }
+        return;
+    }
+
+    /// The appenBool() function shall append a new element to a bson document of type bool.
+    ///
+    /// - bson: A Bson.
+    /// - key: An ASCII C string containing the name of the field.
+    /// - value: A bool value to append.
+    ///
+    /// Returns true if the operation was applied successfully.
+    /// The function will fail if appending value grows bson larger than INT32_MAX.
+    ///
+    /// bson_append_bool()
+    /// Ref. https://mongoc.org/libbson/current/bson_append_bool.html
+    pub fn appendBool(self: *Bson, key: [*c]const 8, value: bool) !void {
+        const ok = c.bson_append_bool(self.bson, key, -1, value);
+        if (!ok) {
+            return Error.AppendError;
+        }
+        return;
+    }
+
+    /// bson_append_now_utc()
+    pub fn appendNowUtc(self: *Bson, key: [*c]const u8) !void {
+        const ok = c.bson_append_now_utc(self.bson, key, -1);
+        if (!ok) {
+            return Error.AppendError;
+        }
+        return;
+    }
+
+    /// This function is not similar in functionality to appendDateTime().
+    /// Timestamp elements are different in that they include only second precision and an increment field.
+    /// They are primarily used for intra-MongoDB server communication.
+    /// The appendTimestamp() function shall append a new element of type BSON_TYPE_TIMESTAMP.
+    ///
+    /// - bson: A bson_t.
+    /// - key: An ASCII C string containing the name of the field.
+    /// - timestamp: A u32.
+    /// - increment: A u32.
+    ///
+    /// bson_append_timestamp()
+    pub fn appendTimestamp(self: *Bson, key: [*c]const u8, timestamp: u32, increment: u32) !void {
+        const ok = c.bson_append_timestamp(self.bson, key, -1, timestamp, increment);
+        if (!ok) {
+            return Error.AppendError;
+        }
+        return;
+    }
+
+    /// The appendTimeT() function is a helper that takes a time_t instead of milliseconds since the UNIX epoch.
+    ///
+    /// bson_append_time_t()
+    pub fn appendTimeT(self: *Bson, key: [*c]u8, value: Time) !void {
+        const ok = c.bson_append_time_t(self.bson, key, -1, value);
+        if (!ok) {
+            return Error.AppendError;
+        }
+        return;
+    }
+
+    /// The function shall append a new element to bson of type BSON_TYPE_NULL.
+    ///
+    /// bson_append_null()
+    pub fn appendNull(self: *Bson, key: [*c]u8) !void {
+        const ok = c.bson_append_null(self.bson, key, -1);
+        if (!ok) {
+            return Error.AppendError;
+        }
+        return;
+    }
+
+    /// The function is a helper that takes a struct timeval instead of milliseconds since the UNIX epoch.
+    ///
+    /// bson_append_timeval()
+    pub fn appendTimeval(self: *Bson, key: [*c]u8, value: Timeval) !void {
+        const ok = c.bson_append_timeval(self.bson, key, -1, value);
+        if (!ok) {
+            return Error.AppendError;
+        }
+
+        return;
+    }
+
+    /// Appends a new field to bson by determining the boxed type in value.
+    /// This is useful if you want to copy fields between documents but do not know the field type until runtime.
+    ///
+    /// bson_append_value()
+    /// Ref. https://mongoc.org/libbson/current/bson_append_value.html
+    pub fn appendValue(self: *Bson, key: [*c]const u8, value: Value) !void {
+        const ok = c.bson_append_value(self.bson, key, -1, value.bson_value);
+        if (!ok) {
+            return Error.AppendError;
+        }
+
+        return;
+    }
+
+    /// The getData() function shall return the raw buffer of a bson document.
+    /// This can be used in conjunction with the len property of a bson_t if you want to copy the raw buffer around.
+    ///
+    /// Returns a buffer which should not be modified or freed.
+    ///
+    /// bson_get_data()
+    pub fn getData(self: *Bson) [*c]const u8 {
+        return c.bson_get_data(self.bson);
+    }
+
+    /// The equal() function shall return true if both documents are equal.
+    ///
+    /// bson_equal()
+    /// Ref. https://mongoc.org/libbson/current/bson_equal.html
+    pub fn equal(self: *Bson, other: *Bson) bool {
+        return c.bson_equal(self.bson, other.bson);
+    }
+
+    /// The compare() function shall compare two bson documents for equality.
+    /// This can be useful in conjunction with _qsort()_.
+    /// If equal, 0 is returned.
+    ///
+    /// Returns less than zero, zero, or greater than zero in qsort() style.
+    ///
+    /// bson_compare()
+    /// Ref. https://mongoc.org/libbson/current/bson_compare.html
+    pub fn compare(self: *Bson, other: *Bson) c_int {
+        return c.bson_compare(self.bson, other.bson);
+    }
+
+    /// The initFromJson() function will initialize a new bson_t by parsing the JSON found in data.
+    /// Only a single JSON object may exist in data or an error will be set and false returned.
+    /// data should be in MongoDB Extended JSON format.
+    ///
+    /// bson_init_from_json()
+    /// Ref. https://mongoc.org/libbson/current/bson_init_from_json.html
+    pub fn initFromJson(self: *Bson, data: [*c]const u8) !void {
+        var err = BsonError.init();
+        const ok = c.bson_init_from_json(self.bson, data, -1, err.ptr());
+        if (!ok) {
+            std.debug.print("initFromJson failed(): {s}\n", .{err.string()});
+            return Error.BsonError;
+        }
+
+        return;
+    }
+
+    /// Validates a BSON document by walking through the document and inspecting the keys and values for valid content.
+    /// You can modify how the validation occurs through the use of the flags parameter, see validateWithError() for details.
+    ///
+    /// Returns true if bson is valid; otherwise false and offset is set to the byte offset where the error was detected.
+    ///
+    /// bson_validate()
+    pub fn validate(self: *Bson, flags: ValidateFlags, offset: [*c]usize) bool {
+        return c.bson_validate(self.bson, @intFromEnum(flags), offset);
+    }
+
+    /// Validates a BSON document by walking through the document and inspecting the keys and values for valid content.
+    /// You can modify how the validation occurs through the use of the flags parameter. A description of their effect is below.
+    /// BSON_VALIDATE_NONE Basic validation of BSON length and structure.
+    /// BSON_VALIDATE_UTF8 All keys and string values are checked for invalid UTF-8.
+    /// BSON_VALIDATE_UTF8_ALLOW_NULL String values are allowed to have embedded NULL bytes.
+    /// BSON_VALIDATE_DOLLAR_KEYS Prohibit keys that start with $ outside of a “DBRef” subdocument.
+    /// BSON_VALIDATE_DOT_KEYS Prohibit keys that contain . anywhere in the string.
+    /// BSON_VALIDATE_EMPTY_KEYS Prohibit zero-length keys.
+    ///
+    /// Returns true if bson is valid; otherwise false and error is filled out.
+    /// The bson_error_t domain is set to BSON_ERROR_INVALID. Its code is set to one of the bson_validate_flags_t flags
+    /// indicating which validation failed; for example, if a key contains invalid UTF-8, then the code is set to BSON_VALIDATE_UTF8,
+    /// but if the basic structure of the BSON document is corrupt, the code is set to BSON_VALIDATE_NONE.
+    /// The error message is filled out, and gives more detail if possible.
+    ///
+    /// bson_validate_with_error()
+    /// Ref. https://mongoc.org/libbson/current/bson_validate_with_error.html
+    pub fn validateWithError(self: *Bson, flags: ValidateFlags, err: *BsonError) bool {
+        return c.bson_validate_with_error(self.bson, @intFromEnum(flags), err.ptr());
+    }
+
+    /// The asJson() function shall encode bson as a UTF-8 string using libbson’s legacy JSON format.
+    /// This function is superseded by asCanonicalExtendedJson() and asRelaxedExtendedJson(), which use the same
+    /// MongoDB Extended JSON format as all other MongoDB drivers.
+    /// The caller is responsible for freeing the resulting UTF-8 encoded string by calling bson_free() with the result.
+    ///
+    /// bson_as_json()
+    /// Ref. https://mongoc.org/libbson/current/bson_as_json.html
+    pub fn asJson(self: *Bson) [*c]u8 {
+        return c.bson_as_json(self.bson, null);
+    }
+
+    /// The bson_as_json_with_opts() encodes bson as a UTF-8 string in the MongoDB Extended JSON format.
+    /// The caller is responsible for freeing the resulting UTF-8 encoded string by calling bson_free() with the result.
+    /// If non-NULL, length will be set to the length of the result in bytes.
+    /// The opts structure is used to pass options for the encoding process. Please refer to the documentation of bson_json_opts_t for more details.
+    ///
+    /// Returns If successful, a newly allocated UTF-8 encoded string and length is set.
+    /// Upon failure, NULL is returned.
+    ///
+    /// bson_as_json_with_opts()
+    /// Ref. https://mongoc.org/libbson/current/bson_as_json_with_opts.html
+    pub fn asJsonWithOpts(self: *Bson, opts: JsonOpts) [*c]u8 {
+        return c.bson_as_json_with_opts(self.bson, null, opts.json_opts);
+    }
+
+    // TODO.
+    // bson_new_from_buffer()
+    // bson_new_from_data()
     // bson_append_code()
     // bson_append_code_with_scope()
     // bson_append_dbpointer()
     // bson_append_decimal128()
-    // bson_append_double()
-    // bson_append_int64()
     // bson_append_iter()
     // bson_append_maxkey()
     // bson_append_minkey()
-    // bson_append_now_utc()
-    // bson_append_null()
-    // bson_append_oid()
     // bson_append_regex()
     // bson_append_regex_w_len()
     // bson_append_symbol()
-    // bson_append_time_t()
-    // bson_append_timestamp()
-    // bson_append_timeval()
     // bson_append_undefined()
-    // bson_append_value()
     // bson_array_as_canonical_extended_json()
     // bson_array_as_relaxed_extended_json()
-    // bson_as_json()
-    // bson_as_json_with_opts()
     // bson_as_relaxed_extended_json()
-    // bson_compare()
     // bson_concat()
     // bson_copy()
     // bson_copy_to()
@@ -330,20 +662,13 @@ pub const Bson = struct {
     // bson_copy_to_excluding_noinit_va()
     // bson_count_keys()
     // bson_destroy_with_steal()
-    // bson_equal()
-    // bson_get_data()
-    // bson_init_from_json()
     // bson_init_static()
     // bson_json_mode_t
     // bson_json_opts_t
-    // bson_new_from_buffer()
-    // bson_new_from_data()
     // bson_reinit()
     // bson_reserve_buffer()
     // bson_sized_new()
     // bson_steal()
-    // bson_validate()
-    // bson_validate_with_error()
 
 };
 
@@ -433,4 +758,24 @@ pub const Oid = struct {
     // bson_oid_init_sequence()
     // bson_oid_is_valid()
     // bson_oid_to_string()
+};
+
+/// The Value structure is a boxed type for encapsulating a runtime determined type.
+/// Ref. https://mongoc.org/libbson/current/bson_value_t.html
+pub const Value = struct {
+    bson_value: [*c]c.bson_value_t,
+
+    pub fn init() Value {
+        return Value{
+            .bson_value = null,
+        };
+    }
+
+    pub fn copy(self: Value, dst: Value) void {
+        c.bson_value_copy(self.bson_value, dst.bson_value);
+    }
+
+    pub fn destroy(self: Value) void {
+        c.bson_value_destroy(self.bson_value);
+    }
 };
