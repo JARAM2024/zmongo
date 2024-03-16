@@ -380,6 +380,17 @@ pub const Bson = struct {
         return Error.BsonError;
     }
 
+    // bson_as_relaxed_extended_json()
+    pub fn asRelaxedExtendedJson(self: *const Bson) !Json {
+        if (c.bson_as_relaxed_extended_json(self.ptrConst, null)) |json_str| {
+            return Json{
+                .value = json_str,
+            };
+        }
+
+        return Error.BsonError;
+    }
+
     /// The appendOid() function shall append a new element to bson of type BSON_TYPE_OID.
     /// oid MUST be a pointer to a bson_oid_t.
     ///
@@ -656,7 +667,6 @@ pub const Bson = struct {
     // bson_append_undefined()
     // bson_array_as_canonical_extended_json()
     // bson_array_as_relaxed_extended_json()
-    // bson_as_relaxed_extended_json()
     // bson_concat()
     // bson_copy()
     // bson_copy_to()
