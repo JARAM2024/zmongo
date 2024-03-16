@@ -131,12 +131,12 @@ test "oid round strip" {
 
     std.debug.print("oid string: {s} - size: {d}\n", .{ oid_string, oid_string.len });
 
-    const oid1 = bson.Oid.initFromString(oid_string[0..24 :0]);
+    const oid1 = bson.Oid.initFromString(oid_string);
 
     const oid1_string = try oid1.toString(testing.allocator);
     defer testing.allocator.free(oid1_string);
 
     std.debug.print("oid1 string: {s} - size: {d}\n", .{ oid1_string, oid1_string.len });
 
-    // try testing.expectEqualSlices(u8, oid_string, oid1_string);
+    try testing.expectEqualSlices(u8, oid_string, oid1_string);
 }

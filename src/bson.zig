@@ -720,27 +720,20 @@ pub const Oid = struct {
         };
     }
 
-    // This function create a new Oid with `undefined` oid.
-    pub fn new() Oid {
-        var oid: c.bson_oid_t = undefined;
-        return Oid{
-            .oid = &oid,
-        };
-    }
-
-    // This function converts oid object to string.
     pub fn toString(self: Oid, alloc: std.mem.Allocator) ![]const u8 {
-        var buf = try alloc.allocSentinel(u8, 24, 0);
-        c.bson_oid_to_string(self.oid, buf[0..24 :0]);
-        return buf[0..25];
+        const buf = try alloc.alloc(u8, 24);
+        c.bson_oid_to_string(self.oid, @ptrCast(buf));
+        return buf;
     }
 
     // This function initiates oid from input string oid.
     pub fn initFromString(oid_string: []const u8) Oid {
-        const self = new();
-        c.bson_oid_init_from_string(self.oid, @ptrCast(oid_string));
+        var oid: c.bson_oid_t = undefined;
+        c.bson_oid_init_from_string(@ptrCast(&oid), @ptrCast(oid_string));
 
-        return self;
+        return Oid{
+            .oid = @ptrCast(&oid),
+        };
     }
 
     // TODO.
@@ -756,11 +749,9 @@ pub const Oid = struct {
     // bson_oid_hash_unsafe()
     // bson_oid_init()
     // bson_oid_init_from_data()
-    // bson_oid_init_from_string()
     // bson_oid_init_from_string_unsafe()
     // bson_oid_init_sequence()
     // bson_oid_is_valid()
-    // bson_oid_to_string()
 };
 
 /// The Value structure is a boxed type for encapsulating a runtime determined type.
