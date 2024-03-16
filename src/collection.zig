@@ -309,17 +309,51 @@ pub const Collection = struct {
         return c.mongoc_collection_command_with_opts(self.collection, command_doc.ptrConst(), read_prefs.ptrOrNull(), opts.ptrConst(), reply.ptr(), err.ptr());
     }
 
+    /// This functions executes a count query on collection.
+    /// In contrast with estimatedDocumentCount(), the count returned is guaranteed to be accurate.
+    /// This function is considered a retryable read operation.
+    ///
+    /// Upon a transient error (a network error, errors due to replica set failover, etc.) the operation is safely retried once.
+    /// If retryreads is false in the URI (see mongoc_uri_t) the retry behavior does not apply.
+    ///
+    /// Returns: -1 on failure, otherwise the number of documents counted.
+    ///
+    /// Ref. https://mongoc.org/libmongoc/current/mongoc_collection_count_documents.html
+    /// mongoc_collection_count_documents()
+    pub fn countDocuments(self: Collection, filter: *const Bson) !i64 {
+        // pub fn countDocuments(self: Collection, filter: *const Bson, opts: *const Bson, read_prefs: ReadPrefs) !i64 {
+        var err = bson.BsonError.init();
+        var reply = bson.Bson.new();
+        defer reply.destroy();
+        const n = c.mongoc_collection_count_documents(self.collection, filter.ptrConst(), null, null, reply.ptr(), err.ptr());
+        if (n == -1) {
+            const reply_json = try reply.asCanonicalExtendedJson();
+            defer reply_json.free();
+            std.debug.print("Collection.count_documents() failed: {s} - {s}\n", .{ err.string(), reply_json.string() });
+            return mongo.Error.CollectionError;
+        }
+
+        return n;
+    }
+
+    /// This function creates a cursor which sends the aggregate command on the underlying collection upon the
+    /// first call to Cursor.next().
+    /// For more information on building aggregation pipelines, see the MongoDB Manual entry on the aggregate command.
+    ///
+    /// Ref. https://mongoc.org/libmongoc/current/mongoc_collection_aggregate.html
+    // mongoc_collection_aggregate()
+    pub fn aggregate(self: Collection, flags: QueryFlags, pipeline: *const Bson, opts: *const Bson, read_prefs: ReadPrefs) Cursor {
+        const cursor = c.mongoc_collection_aggregate(self.collection, flags, pipeline.ptrConst(), opts.ptrConst(), read_prefs.ptrOrNull());
+        return Cursor.init(cursor);
+    }
+
     // mongoc_collection_update_many()
     // mongoc_collection_delete_many()
-    // mongoc_collection_count_documents()
     // mongoc_collection_find_and_modify()
     // mongoc_collection_find_and_modify_with_opts()
 
-    // mongoc_collection_aggregate()
     // mongoc_collection_copy()
     // mongoc_collection_estimated_document_count()
-    // mongoc_collection_count()
-    // mongoc_collection_count_with_opts()
     // mongoc_collection_create_bulk_operation()
     // mongoc_collection_create_bulk_operation_with_opts()
     // mongoc_collection_create_index()
@@ -354,4 +388,6 @@ pub const Collection = struct {
     // mongoc_collection_find() - Deprecated. DO NOT USE. Use find_with_opts() instead!
     // mongoc_collection_find_indexes() - Deprecated. DO NOT USE
     // mongoc_collection_find_indexes_with_opts() - Deprecated. DO NOT USE
+    // mongoc_collection_count() - Deprecated
+    // mongoc_collection_count_with_opts() - Deprecated
 };
