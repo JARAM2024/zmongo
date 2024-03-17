@@ -56,6 +56,7 @@ pub const Error = error{
     AppendError,
     BsonError,
     JsonError,
+    IterError,
 };
 
 pub const Json = struct {
@@ -382,7 +383,7 @@ pub const Bson = struct {
 
     // bson_as_relaxed_extended_json()
     pub fn asRelaxedExtendedJson(self: *const Bson) !Json {
-        if (c.bson_as_relaxed_extended_json(self.ptrConst, null)) |json_str| {
+        if (c.bson_as_relaxed_extended_json(self.ptrConst(), null)) |json_str| {
             return Json{
                 .value = json_str,
             };
@@ -731,8 +732,9 @@ pub const Oid = struct {
     }
 
     pub fn toString(self: Oid, alloc: std.mem.Allocator) ![]const u8 {
-        const buf = try alloc.alloc(u8, 24);
-        c.bson_oid_to_string(self.oid, @ptrCast(buf));
+        const buf = try alloc.create([25]u8);
+        c.bson_oid_to_string(self.oid, buf);
+
         return buf;
     }
 
@@ -782,4 +784,115 @@ pub const Value = struct {
     pub fn destroy(self: Value) void {
         c.bson_value_destroy(self.bson_value);
     }
+};
+
+/// A structure used to iterate through the elements of a Bson.
+/// It is meant to be used on the stack and can be discarded at any time as it
+/// contains no external allocation. The contents of the structure should be
+/// considered private and may change between releases, however the structure size will not change.
+///
+/// The Bson MUST be valid for the lifetime of the iter and it is an error to modify the bson_t while using the iter.
+pub const Iter = struct {
+    iter: [*c]c.bson_iter_t,
+
+    /// Function shall initialize iter to iterate upon the BSON document bson.
+    /// Upon initialization, iter is placed before the first element.
+    /// Callers must call next(), find(), or find_case() to advance to an element.
+    pub fn init(bson: *const Bson) !Iter {
+        var _iter: c.bson_iter_t = undefined;
+        const ok = c.bson_iter_init(&_iter, bson.ptrConst());
+        if (!ok) {
+            return Error.IterError;
+        }
+
+        return Iter{
+            .iter = &_iter,
+        };
+    }
+
+    // bson_iter_next()
+    pub fn next(self: Iter) bool {
+        return c.bson_iter_next(self.iter);
+    }
+
+    // bson_iter_find()
+    pub fn find(self: Iter, key: []const u8) bool {
+        return c.bson_iter_find(self.iter, @ptrCast(key));
+    }
+
+    // bson_iter_find_case()
+    pub fn findCase(self: Iter, key: []const u8) bool {
+        return c.bson_iter_find_case(self.iter, @ptrCast(key));
+    }
+
+    // bson_iter_oid()
+    pub fn iterOid(self: Iter) Oid {
+        return Oid{
+            .oid = @constCast(c.bson_iter_oid(self.iter)),
+        };
+    }
+
+    // bson_iter_utf8()
+    pub fn iterUtf8(self: Iter) []const u8 {
+        const c_str: [*:0]const u8 = c.bson_iter_utf8(self.iter, null);
+        return std.mem.span(c_str);
+    }
+
+    // bson_iter_bool()
+    pub fn iterBool(self: Iter) bool {
+        return c.bson_iter_bool(self.iter);
+    }
+
+    // bson_iter_double()
+    pub fn iterF64(self: Iter) bool {
+        return c.bson_iter_double(self.iter);
+    }
+
+    // bson_iter_int64()
+    pub fn iterI64(self: Iter) i64 {
+        return c.bson_iter_int64(self.iter);
+    }
+
+    // TODO.
+    // bson_iter_array()
+    // bson_iter_as_bool()
+    // bson_iter_as_double()
+    // bson_iter_as_int64()
+    // bson_iter_binary()
+    // bson_iter_code()
+    // bson_iter_codewscope()
+    // bson_iter_date_time()
+    // bson_iter_dbpointer()
+    // bson_iter_decimal128()
+    // bson_iter_document()
+    // bson_iter_dup_utf8()
+    // bson_iter_find_descendant()
+    // bson_iter_find_w_len()
+    // bson_iter_init_find()
+    // bson_iter_init_find_case()
+    // bson_iter_init_find_w_len()
+    // bson_iter_init_from_data()
+    // bson_iter_init_from_data_at_offset()
+    // bson_iter_int32()
+    // bson_iter_key()
+    // bson_iter_key_len()
+    // bson_iter_offset()
+    // bson_iter_overwrite_bool()
+    // bson_iter_overwrite_date_time()
+    // bson_iter_overwrite_decimal128()
+    // bson_iter_overwrite_double()
+    // bson_iter_overwrite_int32()
+    // bson_iter_overwrite_int64()
+    // bson_iter_overwrite_oid()
+    // bson_iter_overwrite_timestamp()
+    // bson_iter_recurse()
+    // bson_iter_regex()
+    // bson_iter_symbol()
+    // bson_iter_time_t()
+    // bson_iter_timeval()
+    // bson_iter_timestamp()
+    // bson_iter_type()
+    // bson_iter_value()
+    // bson_iter_visit_all()
+
 };
