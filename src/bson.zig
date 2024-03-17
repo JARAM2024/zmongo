@@ -723,9 +723,15 @@ pub const Oid = struct {
     oid: [*c]c.bson_oid_t = null,
 
     // This function creates Oid and generates oid.
-    pub fn init() Oid {
+    pub fn init(ctx: ?Context) Oid {
         var oid: c.bson_oid_t = undefined;
-        c.bson_oid_init(@ptrCast(&oid), null);
+
+        if (ctx) |context| {
+            c.bson_oid_init(@ptrCast(&oid), context.ctx);
+        } else {
+            c.bson_oid_init(@ptrCast(&oid), null);
+        }
+
         return Oid{
             .oid = @ptrCast(&oid),
         };
@@ -895,4 +901,44 @@ pub const Iter = struct {
     // bson_iter_value()
     // bson_iter_visit_all()
 
+};
+
+pub const ContextFlags = enum(c_uint) {
+    BSON_CONTEXT_NONE = 0,
+    BSON_CONTEXT_DISABLE_PID_CACHE = (1 << 2),
+};
+
+pub const Context = struct {
+    ctx: ?*c.bson_context_t,
+
+    /// Creates a new Bson Context. This is rarely needed as getDefault() serves most use-cases.
+    /// A newly allocated bson_context_t that should be freed with destroy().
+    ///
+    /// flags: A ContextFlags.
+    /// The following flags may be used:
+    /// - BSON_CONTEXT_NONE meaning creating ObjectIDs with this context is not a thread-safe operation.
+    /// - BSON_CONTEXT_DISABLE_PID_CACHE meaning creating ObjectIDs will also check if the
+    /// process has changed by calling getpid() on every ObjectID generation.
+    pub fn new(flags: ContextFlags) Context {
+        return Context{
+            .ctx = c.bson_context_new(@intFromEnum(flags)),
+        };
+    }
+
+    /// The bson_context_destroy() function shall release all resources associated with context.
+    /// Does nothing if context is NULL.
+    /// This should be called when you are no longer using a Context that you have allocated with new().
+    pub fn destroy(self: Context) void {
+        return c.bson_context_destroy(self.ctx);
+    }
+
+    /// The bson_context_get_default() function shall return the default Context for the process.
+    /// This context is created with the flags
+    /// - BSON_CONTEXT_THREAD_SAFE and
+    /// - BSON_CONTEXT_DISABLE_PID_CACHE.
+    pub fn getDefault() Context {
+        return Context{
+            .ctx = c.bson_context_get_default(),
+        };
+    }
 };

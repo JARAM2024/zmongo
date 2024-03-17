@@ -123,7 +123,7 @@ test "json bson round trip" {
 }
 
 test "oid round strip" {
-    const oid = bson.Oid.init();
+    const oid = bson.Oid.init(null);
     const oid_string = try oid.toString(testing.allocator);
     defer testing.allocator.free(oid_string);
 
@@ -153,7 +153,7 @@ test "oid round strip" {
 }
 
 test "iter" {
-    const oid = bson.Oid.init();
+    const oid = bson.Oid.init(null);
     const oid_string_input = try oid.toString(testing.allocator);
     defer testing.allocator.free(oid_string_input);
 
@@ -191,4 +191,22 @@ test "iter" {
     std.debug.print("Oid String Output: {s}\n", .{oid_string_output});
 
     // try testing.expectEqualSlices(u8, oid_string, oid1_string);
+}
+
+test "context" {
+    // const ctx = bson.Context.getDefault();
+    const ctx = bson.Context.new(bson.ContextFlags.BSON_CONTEXT_DISABLE_PID_CACHE);
+
+    const oid = bson.Oid.init(ctx);
+
+    const oid_string = try oid.toString(testing.allocator);
+    defer testing.allocator.free(oid_string);
+
+    std.debug.print("oid_string: {s}\n", .{oid_string});
+
+    var b1 = bson.Bson.new();
+    try b1.appendOid("_id", oid);
+    const b1_json = try b1.asRelaxedExtendedJson();
+    defer b1_json.free();
+    std.debug.print("b1_json: {s}\n", .{b1_json.string()});
 }
