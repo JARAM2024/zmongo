@@ -49,9 +49,9 @@ pub const Cursor = struct {
     ///
     /// mongoc_cursor_next()
     /// Ref. https://mongoc.org/libmongoc/current/mongoc_cursor_next.html
-    pub fn next(self: Cursor, doc: [*c][*c]const c.bson_t) bool {
-        // var d = doc.ptrConst();
-        return c.mongoc_cursor_next(self.cursor, doc);
+    pub fn next(self: Cursor, doc: *bson.Bson) bool {
+        const doc_ptr = doc.ptrPtrConst();
+        return c.mongoc_cursor_next(self.cursor, doc_ptr);
     }
 
     /// This function returns cursor message string if any.

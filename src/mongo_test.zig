@@ -120,13 +120,14 @@ test "Collection.findWithOpts" {
     const cursor = col.findWithOpts(&filter, &opts, read_prefs);
     var doc = bson.Bson.new();
     defer doc.destroy();
-    while (cursor.next(doc.ptrPtrConst())) {
+    while (cursor.next(&doc)) {
         const json = try doc.asCanonicalExtendedJson();
         std.debug.print("{s}\n", .{json.string()});
     }
 }
 
 const Post = struct {
+    _id: ?Oid,
     title: []const u8,
     content: []const u8,
     created: i64,
@@ -137,6 +138,7 @@ const Post = struct {
     pub fn init(alloc: std.mem.Allocator, title: []const u8, content: []const u8) !*Self {
         const post = try alloc.create(Post);
 
+        post._id = null;
         post.title = title;
         post.content = content;
         post.created = std.time.timestamp();
@@ -150,20 +152,32 @@ const Post = struct {
     }
 };
 
+const Oid = struct {
+    @"$oid": []const u8,
+};
+
+const PostDb = struct {
+    _id: Oid,
+    title: []const u8,
+    content: []const u8,
+    created: i64,
+    updated: i64,
+};
+
 test "Collection.insertMany" {
     const client = try newClient();
     const col = client.getCollection("db", "posts");
 
     const post1 = try Post.init(allocator, "This is post one", "Here is my first post content");
     defer post1.deinit(allocator);
-    const post1_json = try std.json.stringifyAlloc(allocator, post1, .{});
+    const post1_json = try std.json.stringifyAlloc(allocator, post1, .{ .emit_null_optional_fields = false });
     defer allocator.free(post1_json);
     const p1 = try std.mem.Allocator.dupeZ(allocator, u8, post1_json);
     defer allocator.free(p1);
 
     const post2 = try Post.init(allocator, "This is post two", "Here is my second post content");
     defer post2.deinit(allocator);
-    const post2_json = try std.json.stringifyAlloc(allocator, post2, .{});
+    const post2_json = try std.json.stringifyAlloc(allocator, post2, .{ .emit_null_optional_fields = false });
     defer allocator.free(post2_json);
     const p2 = try std.mem.Allocator.dupeZ(allocator, u8, post2_json);
     defer allocator.free(p2);
@@ -192,7 +206,7 @@ test "Collection.insertMany" {
     const cursor = col.findWithOpts(&filter, &opts, read_prefs);
     var doc = bson.Bson.new();
     defer doc.destroy();
-    while (cursor.next(doc.ptrPtr())) {
+    while (cursor.next(&doc)) {
         const json = try doc.asCanonicalExtendedJson();
         std.debug.print("{s}\n", .{json.string()});
     }
@@ -214,6 +228,95 @@ test "Collection.drop" {
     if (!ok) {
         std.debug.print("collection.drop() failed: {s}\n", .{err.string()});
     }
+}
+
+test "Collection.oid" {
+    const client = try newClient();
+    const col = client.getCollection("db", "posts");
+
+    const post1 = try Post.init(allocator, "This is post one", "Here is my first post content");
+    defer post1.deinit(allocator);
+    const post1_json = try std.json.stringifyAlloc(allocator, post1, .{ .emit_null_optional_fields = false });
+    defer allocator.free(post1_json);
+    const p1 = try std.mem.Allocator.dupeZ(allocator, u8, post1_json);
+    defer allocator.free(p1);
+
+    const post2 = try Post.init(allocator, "This is post two", "Here is my second post content");
+    defer post2.deinit(allocator);
+    const post2_json = try std.json.stringifyAlloc(allocator, post2, .{ .emit_null_optional_fields = false });
+    defer allocator.free(post2_json);
+    const p2 = try std.mem.Allocator.dupeZ(allocator, u8, post2_json);
+    defer allocator.free(p2);
+
+    var bson1 = try bson.Bson.newFromJson(p1);
+    defer bson1.destroy();
+    var bson2 = try bson.Bson.newFromJson(p2);
+    defer bson2.destroy();
+
+    var posts = [_]*bson.Bson{ &bson1, &bson2 };
+    var opts = bson.Bson.new();
+    defer opts.deinit();
+    var reply = bson.Bson.new();
+    defer reply.deinit();
+    var err = bson.BsonError.init();
+
+    var ok = col.insertMany(posts[0..], posts.len, &opts, &reply, &err);
+    if (!ok) {
+        std.debug.print("insert post failed: {s}\n", .{err.string()});
+    }
+
+    // get them back
+    var filter = bson.Bson.new();
+    defer filter.destroy();
+    const read_prefs = mongo.ReadPrefs.init();
+    const cursor = col.findWithOpts(&filter, &opts, read_prefs);
+    var doc = bson.Bson.new();
+    defer doc.destroy();
+    while (cursor.next(&doc)) {
+        const json = try doc.asRelaxedExtendedJson();
+        defer json.free();
+        std.debug.print("{s}\n", .{json.string()});
+
+        const p = try std.json.parseFromSlice(Post, testing.allocator, json.string(), .{ .ignore_unknown_fields = true });
+        defer p.deinit();
+        var id_from_post: []const u8 = undefined;
+        var id_from_oid: []const u8 = undefined;
+        if (p.value._id) |_id| {
+            id_from_post = _id.@"$oid";
+            std.debug.print("_id: {s}\n", .{id_from_post});
+        }
+
+        // find the oid
+        const iter = try bson.Iter.init(@constCast(&doc));
+        // NOTE. for `_id` need `findCase` instead of `find`
+        if (iter.findCase("_id")) {
+            const oid1 = iter.iterOid();
+            id_from_oid = try oid1.toString(testing.allocator);
+            defer testing.allocator.free(id_from_oid);
+            std.debug.print("OID FOUND...:{s}\n", .{id_from_oid});
+
+            try testing.expectEqualStrings(id_from_post, id_from_oid);
+
+            // find post1 with oid
+            var query = bson.Bson.new();
+            defer query.destroy();
+            try query.appendOid("_id", oid1);
+
+            const cursor1 = col.findWithOpts(&query, &opts, read_prefs);
+            if (cursor1.next(&doc)) {
+                const doc_json = try doc.asRelaxedExtendedJson();
+                std.debug.print("DOC FOUND: {s}\n", .{doc_json.string()});
+            }
+        }
+    }
+
+    // drop the collection
+    ok = col.drop(&err);
+    if (!ok) {
+        std.debug.print("collection.drop() failed: {s}\n", .{err.string()});
+    }
+
+    try testing.expect(ok);
 }
 
 // TODO. insert more unit tests here just before `cleanup`...

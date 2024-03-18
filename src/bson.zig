@@ -737,11 +737,14 @@ pub const Oid = struct {
         };
     }
 
+    // returns oid in string. Caller must free after use.
     pub fn toString(self: Oid, alloc: std.mem.Allocator) ![]const u8 {
-        const buf = try alloc.create([25]u8);
-        c.bson_oid_to_string(self.oid, buf);
+        // NOTE. c string return is zero-teminate
+        var buf: [24:0]u8 = undefined;
+        c.bson_oid_to_string(self.oid, &buf);
 
-        return buf;
+        // just copy the string and leave the `zero` terminated byte.
+        return try alloc.dupe(u8, buf[0..24]);
     }
 
     // This function initiates oid from input string oid.
