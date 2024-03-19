@@ -254,7 +254,7 @@ pub const Bson = struct {
     /// to ensure that the keys of array are properly formatted with string keys such as “0”, “1”, “2” and so forth.
     ///
     /// bson_append_array()
-    pub fn appenArray(self: *Bson, key: []const u8, array: *const Bson) !void {
+    pub fn appendArray(self: *Bson, key: []const u8, array: *const Bson) !void {
         const ok = c.bson_append_array(self.ptr(), @ptrCast(key), -1, array.ptrConst());
         if (!ok) {
             return Error.BsonError;
@@ -720,7 +720,8 @@ pub const BsonError = struct {
 
 // Ref. https://mongoc.org/libbson/current/bson_oid_t.html
 pub const Oid = struct {
-    oid: [*c]c.bson_oid_t = null,
+    // oid: [*c]c.bson_oid_t = null,
+    oid: [*c]c.bson_oid_t,
 
     // This function creates Oid and generates oid.
     pub fn init(ctx: ?Context) Oid {

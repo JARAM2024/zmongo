@@ -15,7 +15,7 @@ test "append array" {
     fruits.init();
     defer fruits.deinit();
 
-    try b.appenArray("groups", &fruits);
+    try b.appendArray("groups", &fruits);
 }
 
 test "bson_as_json" {
@@ -209,4 +209,34 @@ test "context" {
     const b1_json = try b1.asRelaxedExtendedJson();
     defer b1_json.free();
     std.debug.print("b1_json: {s}\n", .{b1_json.string()});
+}
+
+test "oid round trip" {
+    const id = "65f81dcd75bd2194de0d6f51";
+
+    // const ctx = bson.Context.getDefault();
+    const ctx = bson.Context.new(bson.ContextFlags.BSON_CONTEXT_NONE);
+    var oid = bson.Oid.init(ctx);
+    oid = bson.Oid.initFromString(id);
+    const oid_string = try oid.toString(testing.allocator);
+    defer testing.allocator.free(oid_string);
+
+    std.debug.print("expected id: {s}\n", .{id});
+    std.debug.print("actual id: {s}\n", .{oid_string});
+
+    try testing.expectEqualStrings(id, oid_string);
+
+    // Add oid to other bson
+    var query = bson.Bson.new();
+    try query.appendOid("_id", oid);
+    const query_json = try query.asRelaxedExtendedJson();
+    defer query_json.free();
+
+    var query1 = try bson.Bson.newFromJson(query_json.string());
+    defer query1.destroy();
+    const query1_json = try query1.asRelaxedExtendedJson();
+    defer query1_json.free();
+
+    std.debug.print("query_json:  {s}\n", .{query_json.string()});
+    std.debug.print("query1_json: {s}\n", .{query1_json.string()});
 }
