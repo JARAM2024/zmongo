@@ -462,7 +462,7 @@ pub const Bson = struct {
     ///
     /// bson_append_bool()
     /// Ref. https://mongoc.org/libbson/current/bson_append_bool.html
-    pub fn appendBool(self: *Bson, key: []const 8, value: bool) !void {
+    pub fn appendBool(self: *Bson, key: []const u8, value: bool) !void {
         const ok = c.bson_append_bool(self.bson, @ptrCast(key), -1, value);
         if (!ok) {
             return Error.AppendError;
