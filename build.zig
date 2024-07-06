@@ -1,18 +1,25 @@
 const std = @import("std");
 
+fn lazyPathFromRoot(b: *std.Build, sub_path: []const u8) std.Build.LazyPath {
+    return .{ .src_path = .{
+        .owner = b,
+        .sub_path = sub_path,
+    } };
+}
+
 pub fn build(b: *std.Build) void {
     const zmongo = b.addModule("zmongo", .{
-        .root_source_file = .{ .path = "src/root.zig" },
+        .root_source_file = b.path("src/root.zig"),
     });
 
     const libmongoc = b.dependency("libmongoc", .{});
 
     const libpath = b.addModule("libpath", .{
-        .root_source_file = .{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path) },
+        .root_source_file = lazyPathFromRoot(libmongoc.builder, libmongoc.module("libmongoc.library").root_source_file.?.src_path.sub_path),
     });
 
     const mod = b.addModule("zmongo_module", .{
-        .root_source_file = .{ .path = "zmongo.zig" },
+        .root_source_file = b.path("zmongo.zig"),
         .imports = &.{ .{
             .name = "zmongo",
             .module = zmongo,
@@ -22,20 +29,20 @@ pub fn build(b: *std.Build) void {
         } },
     });
 
-    zmongo.addIncludePath(.{ .path = "./libmongoc/include/" });
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libbson-static-1.0.a" });
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libmongoc-static-1.0.a" });
+    zmongo.addIncludePath(b.path("./libmongoc/include/"));
+    zmongo.addObjectFile(b.path("./libmongoc/lib/libbson-static-1.0.a"));
+    zmongo.addObjectFile(b.path("./libmongoc/lib/libmongoc-static-1.0.a"));
 
     //-lmongoc-static-1.0 -lbson-static-1.0 -lsasl2 -lssl -lcrypto -lrt -lresolv -pthread -lz -lzstd -licuuc
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libsasl2-static.a" });
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libssl-static.a" });
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libcrypto-static.a" });
-    // zmongo.addObjectFile(.{ .path = "./libmongoc/lib/librt-static.a" });
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libresolv-static.a" });
-    // zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libpthread-static.a" });
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libz-static.a" });
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libzstd-static.a" });
-    zmongo.addObjectFile(.{ .path = "./libmongoc/lib/libicuuc-static.a" });
+    zmongo.addObjectFile(b.path("./libmongoc/lib/libsasl2-static.a"));
+    zmongo.addObjectFile(b.path("./libmongoc/lib/libssl-static.a"));
+    zmongo.addObjectFile(b.path("./libmongoc/lib/libcrypto-static.a"));
+    // zmongo.addObjectFile(b.path("./libmongoc/lib/librt-static.a" });
+    // zmongo.addObjectFile(b.path("./libmongoc/lib/libresolv-static.a"));
+    // zmongo.addObjectFile(b.path("./libmongoc/lib/libpthread-static.a" });
+    zmongo.addObjectFile(b.path("./libmongoc/lib/libz-static.a"));
+    zmongo.addObjectFile(b.path("./libmongoc/lib/libzstd-static.a"));
+    zmongo.addObjectFile(b.path("./libmongoc/lib/libicuuc-static.a"));
 
     zmongo.link_libc = true;
 
@@ -45,15 +52,15 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const bson_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/bson_test.zig" },
+        .root_source_file = b.path("src/bson_test.zig"),
         .target = target,
         .optimize = optimize,
     });
 
     bson_tests.step.dependOn(b.getInstallStep());
     bson_tests.linkLibC();
-    bson_tests.addLibraryPath(.{ .cwd_relative = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path) });
-    bson_tests.addIncludePath(.{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.include").root_source_file.?.path) });
+    bson_tests.addLibraryPath(.{ .cwd_relative = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.src_path.sub_path) });
+    bson_tests.addIncludePath(.{ .cwd_relative = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.include").root_source_file.?.src_path.sub_path) });
     bson_tests.linkSystemLibrary("bson-static-1.0");
 
     //-lsasl2 -lssl -lcrypto -lrt -lresolv -pthread -lz -lzstd -licuuc
@@ -68,7 +75,7 @@ pub fn build(b: *std.Build) void {
     bson_tests.linkSystemLibrary("icuuc-static");
 
     const run_bson_tests = b.addRunArtifact(bson_tests);
-    run_bson_tests.setEnvironmentVariable("LD_LIBRARY_PATH", libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path));
+    run_bson_tests.setEnvironmentVariable("LD_LIBRARY_PATH", libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.src_path.sub_path));
     run_bson_tests.has_side_effects = true; // no cache
 
     const test_bson_step = b.step("test-bson", "run bson unit tests");
@@ -76,15 +83,15 @@ pub fn build(b: *std.Build) void {
 
     // mongo unit test
     const mongo_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/mongo_test.zig" },
+        .root_source_file = b.path("src/mongo_test.zig"),
         .target = target,
         .optimize = optimize,
     });
 
     mongo_tests.step.dependOn(b.getInstallStep());
     mongo_tests.linkLibC();
-    mongo_tests.addLibraryPath(.{ .cwd_relative = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path) });
-    mongo_tests.addIncludePath(.{ .path = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.include").root_source_file.?.path) });
+    mongo_tests.addLibraryPath(.{ .cwd_relative = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.src_path.sub_path) });
+    mongo_tests.addIncludePath(.{ .cwd_relative = libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.include").root_source_file.?.src_path.sub_path) });
     mongo_tests.linkSystemLibrary("bson-static-1.0");
     mongo_tests.linkSystemLibrary("mongoc-static-1.0");
 
@@ -100,14 +107,14 @@ pub fn build(b: *std.Build) void {
     mongo_tests.linkSystemLibrary("icuuc-static");
 
     const run_mongo_tests = b.addRunArtifact(mongo_tests);
-    run_mongo_tests.setEnvironmentVariable("LD_LIBRARY_PATH", libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.path));
+    run_mongo_tests.setEnvironmentVariable("LD_LIBRARY_PATH", libmongoc.builder.pathFromRoot(libmongoc.module("libmongoc.library").root_source_file.?.src_path.sub_path));
     run_mongo_tests.has_side_effects = true; // no cache
 
     const test_mongo_step = b.step("test-mongo", "run mongo unit tests");
     test_mongo_step.dependOn(&run_mongo_tests.step);
 
     const lib_unit_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/root.zig" },
+        .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
     });
