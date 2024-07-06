@@ -30,20 +30,6 @@ pub fn build(b: *std.Build) void {
     });
 
     zmongo.addIncludePath(b.path("./libmongoc/include/"));
-    zmongo.addObjectFile(b.path("./libmongoc/lib/libbson-static-1.0.a"));
-    zmongo.addObjectFile(b.path("./libmongoc/lib/libmongoc-static-1.0.a"));
-
-    //-lmongoc-static-1.0 -lbson-static-1.0 -lsasl2 -lssl -lcrypto -lrt -lresolv -pthread -lz -lzstd -licuuc
-    zmongo.addObjectFile(b.path("./libmongoc/lib/libsasl2-static.a"));
-    zmongo.addObjectFile(b.path("./libmongoc/lib/libssl-static.a"));
-    zmongo.addObjectFile(b.path("./libmongoc/lib/libcrypto-static.a"));
-    // zmongo.addObjectFile(b.path("./libmongoc/lib/librt-static.a" });
-    // zmongo.addObjectFile(b.path("./libmongoc/lib/libresolv-static.a"));
-    // zmongo.addObjectFile(b.path("./libmongoc/lib/libpthread-static.a" });
-    zmongo.addObjectFile(b.path("./libmongoc/lib/libz-static.a"));
-    zmongo.addObjectFile(b.path("./libmongoc/lib/libzstd-static.a"));
-    zmongo.addObjectFile(b.path("./libmongoc/lib/libicuuc-static.a"));
-
     zmongo.link_libc = true;
 
     _ = mod;
