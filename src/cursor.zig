@@ -19,7 +19,7 @@ const bson = @import("bson.zig");
 ///
 /// Ref. https://mongoc.org/libmongoc/current/mongoc_cursor_t.html
 pub const Cursor = struct {
-    cursor: ?*c.mongoc_cursor_t,
+    cursor: ?*c.mongoc_cursor_t = undefined,
 
     /// init initializes Cursor to receive `mongoc_cursor_t`.
     /// It must be freed by calling `destroy` after use.
@@ -66,7 +66,7 @@ pub const Cursor = struct {
             return mongo.Error.CursorError;
         }
 
-        return allocator.dupeZ(u8, err.message);
+        return allocator.dupeZ(u8, &err.message);
     }
 
     /// This function checks to see if an error has occurred while iterating the cursor.

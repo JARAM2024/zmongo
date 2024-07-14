@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 MongoDB Inc.
+ * Copyright 2009-present MongoDB, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@
 #define MONGOC_USER_SET_LDFLAGS ""
 
 /* MONGOC_CC is used to determine what C compiler was used to compile mongoc */
-#define MONGOC_CC "/usr/bin/gcc"
+#define MONGOC_CC "/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc"
 
 /*
  * MONGOC_ENABLE_SSL_SECURE_CHANNEL is set from configure to determine if we are
@@ -69,7 +69,7 @@
  * MONGOC_ENABLE_SSL_SECURE_TRANSPORT is set from configure to determine if we are
  * compiled with Native SSL support on Darwin
  */
-#define MONGOC_ENABLE_SSL_SECURE_TRANSPORT 0
+#define MONGOC_ENABLE_SSL_SECURE_TRANSPORT 1
 
 #if MONGOC_ENABLE_SSL_SECURE_TRANSPORT != 1
 #  undef MONGOC_ENABLE_SSL_SECURE_TRANSPORT
@@ -80,7 +80,7 @@
  * MONGOC_ENABLE_CRYPTO_COMMON_CRYPTO is set from configure to determine if we are
  * compiled with Native Crypto support on Darwin
  */
-#define MONGOC_ENABLE_CRYPTO_COMMON_CRYPTO 0
+#define MONGOC_ENABLE_CRYPTO_COMMON_CRYPTO 1
 
 #if MONGOC_ENABLE_CRYPTO_COMMON_CRYPTO != 1
 #  undef MONGOC_ENABLE_CRYPTO_COMMON_CRYPTO
@@ -102,7 +102,7 @@
  * MONGOC_ENABLE_SSL_OPENSSL is set from configure to determine if we are
  * compiled with OpenSSL support.
  */
-#define MONGOC_ENABLE_SSL_OPENSSL 1
+#define MONGOC_ENABLE_SSL_OPENSSL 0
 
 #if MONGOC_ENABLE_SSL_OPENSSL != 1
 #  undef MONGOC_ENABLE_SSL_OPENSSL
@@ -113,7 +113,7 @@
  * MONGOC_ENABLE_CRYPTO_LIBCRYPTO is set from configure to determine if we are
  * compiled with OpenSSL support.
  */
-#define MONGOC_ENABLE_CRYPTO_LIBCRYPTO 1
+#define MONGOC_ENABLE_CRYPTO_LIBCRYPTO 0
 
 #if MONGOC_ENABLE_CRYPTO_LIBCRYPTO != 1
 #  undef MONGOC_ENABLE_CRYPTO_LIBCRYPTO
@@ -155,7 +155,7 @@
 /*
  * Use ASN1_STRING_get0_data () rather than the deprecated ASN1_STRING_data
  */
-#define MONGOC_HAVE_ASN1_STRING_GET0_DATA 1
+#define MONGOC_HAVE_ASN1_STRING_GET0_DATA 0
 
 #if MONGOC_HAVE_ASN1_STRING_GET0_DATA != 1
 #  undef MONGOC_HAVE_ASN1_STRING_GET0_DATA
@@ -166,7 +166,7 @@
  * MONGOC_ENABLE_SASL is set from configure to determine if we are
  * compiled with SASL support.
  */
-#define MONGOC_ENABLE_SASL 0
+#define MONGOC_ENABLE_SASL 1
 
 #if MONGOC_ENABLE_SASL != 1
 #  undef MONGOC_ENABLE_SASL
@@ -177,7 +177,7 @@
  * MONGOC_ENABLE_SASL_CYRUS is set from configure to determine if we are
  * compiled with Cyrus SASL support.
  */
-#define MONGOC_ENABLE_SASL_CYRUS 0
+#define MONGOC_ENABLE_SASL_CYRUS 1
 
 #if MONGOC_ENABLE_SASL_CYRUS != 1
 #  undef MONGOC_ENABLE_SASL_CYRUS
@@ -199,7 +199,7 @@
  * have SASL and its version is new enough to use sasl_client_done (),
  * which supersedes sasl_done ().
  */
-#define MONGOC_HAVE_SASL_CLIENT_DONE 0
+#define MONGOC_HAVE_SASL_CLIENT_DONE 1
 
 #if MONGOC_HAVE_SASL_CLIENT_DONE != 1
 #  undef MONGOC_HAVE_SASL_CLIENT_DONE
@@ -257,7 +257,7 @@
  * MONGOC_HAVE_RES_NDESTROY is set from configure to determine if we
  * have BSD / Darwin's res_ndestroy().
  */
-#define MONGOC_HAVE_RES_NDESTROY 0
+#define MONGOC_HAVE_RES_NDESTROY 1
 
 #if MONGOC_HAVE_RES_NDESTROY != 1
 #  undef MONGOC_HAVE_RES_NDESTROY
@@ -308,7 +308,7 @@
  * Set if we have snappy compression support
  *
  */
-#define MONGOC_ENABLE_COMPRESSION_SNAPPY 0
+#define MONGOC_ENABLE_COMPRESSION_SNAPPY 1
 
 #if MONGOC_ENABLE_COMPRESSION_SNAPPY != 1
 #  undef MONGOC_ENABLE_COMPRESSION_SNAPPY
@@ -329,7 +329,7 @@
  * Set if we have zstd compression support
  *
  */
-#define MONGOC_ENABLE_COMPRESSION_ZSTD 0
+#define MONGOC_ENABLE_COMPRESSION_ZSTD 1
 
 #if MONGOC_ENABLE_COMPRESSION_ZSTD != 1
 #  undef MONGOC_ENABLE_COMPRESSION_ZSTD

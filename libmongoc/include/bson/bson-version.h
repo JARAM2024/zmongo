@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 MongoDB, Inc.
+ * Copyright 2009-present MongoDB, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@
  *
  * BSON minor version component (e.g. 2 if %BSON_VERSION is 1.2.3)
  */
-#define BSON_MINOR_VERSION (20)
+#define BSON_MINOR_VERSION (28)
 
 
 /**
@@ -54,14 +54,14 @@
  *
  * BSON prerelease version component (e.g. pre if %BSON_VERSION is 1.2.3-pre)
  */
-#define BSON_PRERELEASE_VERSION ()
+#define BSON_PRERELEASE_VERSION (pre)
 
 /**
  * BSON_VERSION:
  *
  * BSON version.
  */
-#define BSON_VERSION (1.20.0)
+#define BSON_VERSION (1.28.0-pre)
 
 
 /**
@@ -70,7 +70,7 @@
  * BSON version, encoded as a string, useful for printing and
  * concatenation.
  */
-#define BSON_VERSION_S "1.20.0"
+#define BSON_VERSION_S "1.28.0-pre"
 
 
 /**

@@ -406,7 +406,7 @@ pub const Bson = struct {
     /// bson_append_oid()
     /// Ref. https://mongoc.org/libbson/current/bson_append_oid.html
     pub fn appendOid(self: *Bson, key: []const u8, oid: Oid) !void {
-        const ok = c.bson_append_oid(self.bson, @ptrCast(key), -1, oid.oid);
+        const ok = c.bson_append_oid(self.bson, @ptrCast(key), -1, &oid.oid);
         if (!ok) {
             return Error.AppendError;
         }
@@ -634,7 +634,7 @@ pub const Bson = struct {
     /// Ref. https://mongoc.org/libbson/current/bson_as_json.html
     pub fn asJson(self: *Bson) []const u8 {
         const out = c.bson_as_json(self.bson, null);
-        return @ptrCast(out);
+        return std.mem.span(out);
     }
 
     /// The bson_as_json_with_opts() encodes bson as a UTF-8 string in the MongoDB Extended JSON format.
@@ -721,28 +721,28 @@ pub const BsonError = struct {
 // Ref. https://mongoc.org/libbson/current/bson_oid_t.html
 pub const Oid = struct {
     // oid: [*c]c.bson_oid_t = null,
-    oid: [*c]c.bson_oid_t,
+    oid: c.bson_oid_t,
 
     // This function creates Oid and generates oid.
     pub fn init(ctx: ?Context) Oid {
-        var oid: c.bson_oid_t = undefined;
+        var _oid: Oid = .{
+            .oid = undefined,
+        };
 
         if (ctx) |context| {
-            c.bson_oid_init(@ptrCast(&oid), context.ctx);
+            c.bson_oid_init(&_oid.oid, context.ctx);
         } else {
-            c.bson_oid_init(@ptrCast(&oid), null);
+            c.bson_oid_init(&_oid.oid, null);
         }
 
-        return Oid{
-            .oid = @ptrCast(&oid),
-        };
+        return _oid;
     }
 
     // returns oid in string. Caller must free after use.
     pub fn toString(self: Oid, alloc: std.mem.Allocator) ![]const u8 {
         // NOTE. c string return is zero-teminate
         var buf: [24:0]u8 = undefined;
-        c.bson_oid_to_string(self.oid, &buf);
+        c.bson_oid_to_string(&self.oid, &buf);
 
         // just copy the string and leave the `zero` terminated byte.
         return try alloc.dupe(u8, buf[0..24]);
@@ -750,12 +750,12 @@ pub const Oid = struct {
 
     // This function initiates oid from input string oid.
     pub fn initFromString(oid_string: []const u8) Oid {
-        var oid: c.bson_oid_t = undefined;
-        c.bson_oid_init_from_string(@ptrCast(&oid), @ptrCast(oid_string));
-
-        return Oid{
-            .oid = @ptrCast(&oid),
+        var _oid: Oid = .{
+            .oid = undefined,
         };
+        c.bson_oid_init_from_string(&_oid.oid, @ptrCast(oid_string));
+
+        return _oid;
     }
 
     // TODO.
@@ -803,7 +803,7 @@ pub const Value = struct {
 ///
 /// The Bson MUST be valid for the lifetime of the iter and it is an error to modify the bson_t while using the iter.
 pub const Iter = struct {
-    iter: [*c]c.bson_iter_t,
+    iter: c.bson_iter_t,
 
     /// Function shall initialize iter to iterate upon the BSON document bson.
     /// Upon initialization, iter is placed before the first element.
@@ -815,52 +815,65 @@ pub const Iter = struct {
             return Error.IterError;
         }
 
-        return Iter{
-            .iter = &_iter,
+        return .{
+            .iter = _iter,
         };
     }
 
     // bson_iter_next()
-    pub fn next(self: Iter) bool {
-        return c.bson_iter_next(self.iter);
+    pub fn next(self: *Iter) bool {
+        return c.bson_iter_next(self.ptr());
     }
 
     // bson_iter_find()
-    pub fn find(self: Iter, key: []const u8) bool {
-        return c.bson_iter_find(self.iter, @ptrCast(key));
+    pub fn find(self: *Iter, key: [*:0]const u8) bool {
+        return c.bson_iter_find(self.ptr(), key);
     }
 
     // bson_iter_find_case()
-    pub fn findCase(self: Iter, key: []const u8) bool {
-        return c.bson_iter_find_case(self.iter, @ptrCast(key));
+    pub fn findCase(self: *Iter, key: [*:0]const u8) bool {
+        return c.bson_iter_find_case(self.ptr(), key);
     }
 
     // bson_iter_oid()
-    pub fn iterOid(self: Iter) Oid {
+    pub fn iterOid(self: *Iter) Oid {
         return Oid{
-            .oid = @constCast(c.bson_iter_oid(self.iter)),
+            .oid = c.bson_iter_oid(self.ptrConst()).*,
         };
     }
 
     // bson_iter_utf8()
-    pub fn iterUtf8(self: Iter) []const u8 {
-        const c_str: [*:0]const u8 = c.bson_iter_utf8(self.iter, null);
+    pub fn iterUtf8(self: *Iter) []const u8 {
+        const c_str: [*:0]const u8 = c.bson_iter_utf8(self.ptrConst(), null);
         return std.mem.span(c_str);
     }
 
     // bson_iter_bool()
-    pub fn iterBool(self: Iter) bool {
-        return c.bson_iter_bool(self.iter);
+    pub fn iterBool(self: *Iter) bool {
+        return c.bson_iter_bool(self.ptrConst());
     }
 
     // bson_iter_double()
-    pub fn iterF64(self: Iter) bool {
-        return c.bson_iter_double(self.iter);
+    pub fn iterF64(self: *Iter) bool {
+        return c.bson_iter_double(self.ptrConst());
+    }
+
+    // bson_iter_int32()
+    pub fn iterI32(self: *Iter) i32 {
+        return c.bson_iter_int32(self.ptrConst());
     }
 
     // bson_iter_int64()
-    pub fn iterI64(self: Iter) i64 {
-        return c.bson_iter_int64(self.iter);
+    pub fn iterI64(self: *Iter) i64 {
+        return c.bson_iter_int64(self.ptrConst());
+    }
+
+    fn ptr(self: *Iter) [*c]c.bson_iter_t {
+        return &self.iter;
+    }
+
+    fn ptrConst(self: *Iter) [*c]const c.bson_iter_t {
+        return &self.iter;
     }
 
     // TODO.
